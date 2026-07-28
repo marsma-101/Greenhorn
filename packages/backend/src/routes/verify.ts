@@ -1,19 +1,20 @@
 import { Router, Request, Response } from 'express';
-import type { VerifyConfigRequest } from '@greenhorn/shared/types/chat';
+import { verifyApiKey } from '../services/chat-engine';
 
 export const verifyRouter: Router = Router();
 
 verifyRouter.post('/verify', async (req: Request, res: Response) => {
-  const { provider, apiKey, baseUrl } = req.body as VerifyConfigRequest;
-
+  const { provider, apiKey, baseUrl, modelId } = req.body;
+  
   if (!apiKey) {
-    res.json({
-      success: false,
-      message: 'Key 好像不对哦，检查有没有复制完整？',
-    });
+    res.json({ success: false, message: 'Key 好像不对哦，检查有没有复制完整？' });
     return;
   }
-
-  // TODO: 实际调用 API 验证 Key 有效性
-  res.json({ success: true, message: '连接正常！' });
+  
+  // 默认配置
+  const model = modelId || 'deepseek-chat';
+  const url = baseUrl || 'https://api.deepseek.com';
+  
+  const result = await verifyApiKey(apiKey, url, model);
+  res.json(result);
 });
