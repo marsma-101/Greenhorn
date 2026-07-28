@@ -1,0 +1,20 @@
+{
+  "name": "greenhorn",
+  "version": "0.1.0",
+  "private": true,
+  "description": "开箱即用的开源智能体产品化外壳 - 给小白友好的AI助手启动器",
+  "scripts": {
+    "dev": "concurrently \"pnpm --filter @greenhorn/backend dev\" \"pnpm --filter @greenhorn/frontend dev\"",
+    "build": "pnpm --filter @greenhorn/shared build && pnpm --filter @greenhorn/backend build && pnpm --filter @greenhorn/frontend build",
+    "start": "pnpm --filter @greenhorn/backend start",
+    "test": "pnpm -r test",
+    "lint": "pnpm -r lint"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2",
+    "typescript": "^5.4.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
