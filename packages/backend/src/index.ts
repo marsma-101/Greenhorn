@@ -7,6 +7,7 @@ import { verifyRouter } from './routes/verify';
 import { modelProvidersRouter } from './routes/model-providers';
 import { piCheckRouter } from './routes/pi-check';
 import { dataDirRouter } from './routes/data-dir';
+import { ollamaRouter } from './routes/ollama';
 import { errorHandler } from './middleware/errorHandler';
 import { initDataPaths } from './services/pi-config';
 import { DEFAULT_PORT } from '@greenhorn/shared/constants';
@@ -27,6 +28,7 @@ app.use('/api/config', verifyRouter);
 app.use('/api/model-providers', modelProvidersRouter);
 app.use('/api/pi', piCheckRouter);
 app.use('/api/data-dir', dataDirRouter);
+app.use('/api/ollama', ollamaRouter);
 
 // 生产环境下 serve 前端静态文件
 if (process.env.NODE_ENV === 'production') {

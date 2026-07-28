@@ -156,6 +156,38 @@ export default function SettingsPage() {
       >
         保存设置
       </button>
+      
+      {/* 高级设置入口 */}
+      <div className="mt-6">
+        <button
+          onClick={() => navigate('/settings/advanced')}
+          className="w-full px-4 py-3 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400 rounded-xl border border-gray-200 dark:border-gray-700 transition-colors flex items-center justify-center gap-2"
+        >
+          <span>🔧</span>
+          <span>高级设置</span>
+          <span className="text-xs text-gray-400 ml-1">即将上线</span>
+        </button>
+      </div>
+      
+      {/* 关于 */}
+      <section className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-200 dark:border-gray-700 mb-4 mt-4">
+        <h2 className="font-semibold mb-4">📦 关于</h2>
+        <div className="space-y-2 text-sm text-gray-500 dark:text-gray-400">
+          <div className="flex justify-between">
+            <span>GreenHorn 版本</span>
+            <span>v0.1.0</span>
+          </div>
+          <div className="flex justify-between">
+            <span>底层引擎</span>
+            <span>PI (v0.50.2)</span>
+          </div>
+          <div className="mt-2">
+            <a href="https://github.com/MARSMA-101/GreenHorn" target="_blank" rel="noopener noreferrer" className="text-green-500 hover:underline text-xs">
+              查看更新日志 →
+            </a>
+          </div>
+        </div>
+      </section>
     </div>
   );
 }

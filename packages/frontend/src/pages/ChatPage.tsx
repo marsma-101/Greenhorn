@@ -1,14 +1,35 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 
 export default function ChatPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const provider = searchParams.get('provider') || 'pi';
+  const engineName = provider === 'ollama' ? 'Ollama · 本地模型' : 'PI · 编码智能体';
+  
   const [input, setInput] = useState('');
   const [messages, setMessages] = useState<Array<{role: string; content: string}>>([
     { role: 'assistant', content: '💬 你好！我是 AI 助手，有什么可以帮你？' }
   ]);
   const [isStreaming, setIsStreaming] = useState(false);
   const [showThinking, setShowThinking] = useState(true);
+  const [isAborted, setIsAborted] = useState(false);
+  
+  // 获取当前配置
+  const getChatConfig = () => {
+    if (provider === 'ollama') {
+      return {
+        baseUrl: 'http://localhost:11434',
+        model: 'qwen3.5:9b',
+        provider: 'ollama',
+      };
+    }
+    return {
+      baseUrl: 'https://api.deepseek.com',
+      model: 'deepseek-chat',
+      provider: 'deepseek',
+    };
+  };
   
   const handleSend = async () => {
     if (!input.trim() || isStreaming) return;
@@ -18,12 +39,22 @@ export default function ChatPage() {
     setMessages(prev => [...prev, { role: 'user', content: userMessage }]);
     setIsStreaming(true);
     setShowThinking(true);
+    setIsAborted(false);
+    
+    const config = getChatConfig();
     
     try {
       const response = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt: userMessage }),
+        body: JSON.stringify({
+          prompt: userMessage,
+          context: {
+            baseUrl: config.baseUrl,
+            model: config.model,
+            provider: config.provider,
+          },
+        }),
       });
       
       const reader = response.body?.getReader();
@@ -60,6 +91,9 @@ export default function ChatPage() {
                 setShowThinking(true);
               } else if (data.type === 'done') {
                 setShowThinking(false);
+              } else if (data.type === 'error') {
+                setMessages(prev => [...prev, { role: 'assistant', content: `❌ ${data.message}` }]);
+                setIsAborted(true);
               }
             } catch (e) {
               // 忽略解析错误
@@ -75,6 +109,12 @@ export default function ChatPage() {
     }
   };
   
+  const handleStop = () => {
+    setIsAborted(true);
+    setIsStreaming(false);
+    setShowThinking(false);
+  };
+  
   return (
     <div className="flex flex-col h-screen">
       {/* 顶部导航 */}
@@ -82,7 +122,7 @@ export default function ChatPage() {
         <div className="flex items-center gap-3">
           <span className="text-green-600 dark:text-green-400 font-semibold">🍃 GreenHorn</span>
           <span className="text-gray-300 dark:text-gray-600">|</span>
-          <span className="text-sm text-gray-500 dark:text-gray-400">PI · 编码智能体</span>
+          <span className="text-sm text-gray-500 dark:text-gray-400">{engineName}</span>
         </div>
         <button onClick={() => navigate('/settings')} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 text-xl" title="设置">
           ⚙️
@@ -113,6 +153,13 @@ export default function ChatPage() {
             </div>
           </div>
         )}
+        {isAborted && (
+          <div className="flex justify-start">
+            <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-700 rounded-2xl rounded-bl-md px-4 py-3 text-sm text-yellow-600 dark:text-yellow-400">
+              ⏹ 已停止
+            </div>
+          </div>
+        )}
       </div>
       
       {/* 输入区域 */}
@@ -133,7 +180,7 @@ export default function ChatPage() {
             disabled={isStreaming}
           />
           <button
-            onClick={isStreaming ? () => {} : handleSend}
+            onClick={isStreaming ? handleStop : handleSend}
             disabled={!input.trim() && !isStreaming}
             className={`px-6 py-2 rounded-xl transition-colors ${
               isStreaming

@@ -2,14 +2,14 @@
  * 轻量对话引擎（方案B）
  * 
  * 直接调用 OpenAI 兼容 API，不依赖 PI SDK
- * 用于 M1 快速验证端到端流程
- * M2 后再接入真正的 PI SDK
+ * 支持 Ollama（本地无需 Key）和各类云端模型
+ * M1 先验证 Ollama 链路，再扩展其他供应商
  */
 import type { ChatEvent } from '@greenhorn/shared/types/adapter';
 
 interface ChatOptions {
   model: string;
-  apiKey: string;
+  apiKey?: string;
   baseUrl: string;
   temperature?: number;
   maxTokens?: number;
@@ -17,6 +17,7 @@ interface ChatOptions {
 
 /**
  * 调用 OpenAI 兼容 API 发送消息
+ * 支持 Ollama（无需 API Key）和云端模型
  * 返回 AsyncIterable<ChatEvent> 供 SSE 流式消费
  */
 export async function* streamChat(
@@ -34,38 +35,43 @@ export async function* streamChat(
   
   const url = `${baseUrl.replace(/\/+$/, '')}/chat/completions`;
   
-  const response = await fetch(url, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${apiKey}`,
-    },
-    body: JSON.stringify({
-      model,
-      messages,
-      temperature,
-      max_tokens: maxTokens,
-      stream: true,
-    }),
-  });
-  
-  if (!response.ok) {
-    const errorBody = await response.text().catch(() => '');
-    yield { type: 'error', message: `API 请求失败 (${response.status}): ${errorBody}` };
-    return;
+  // 构建请求头：Ollama 不需要 API Key，云端需要
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+  };
+  if (apiKey) {
+    headers['Authorization'] = `Bearer ${apiKey}`;
   }
-  
-  const reader = response.body?.getReader();
-  if (!reader) {
-    yield { type: 'error', message: '无法读取响应流' };
-    return;
-  }
-  
-  const decoder = new TextDecoder();
-  let buffer = '';
-  let content = '';
   
   try {
+    const response = await fetch(url, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        model,
+        messages,
+        temperature,
+        max_tokens: maxTokens,
+        stream: true,
+      }),
+    });
+    
+    if (!response.ok) {
+      const errorBody = await response.text().catch(() => '');
+      yield { type: 'error', message: `API 请求失败 (${response.status}): ${errorBody}` };
+      return;
+    }
+    
+    const reader = response.body?.getReader();
+    if (!reader) {
+      yield { type: 'error', message: '无法读取响应流' };
+      return;
+    }
+    
+    const decoder = new TextDecoder();
+    let buffer = '';
+    let content = '';
+    
     while (true) {
       const { done, value } = await reader.read();
       if (done) break;
