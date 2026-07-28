@@ -2,6 +2,7 @@ import { Routes, Route } from 'react-router-dom';
 import HomePage from './pages/HomePage';
 import ChatPage from './pages/ChatPage';
 import SettingsPage from './pages/SettingsPage';
+import DataDirPage from './pages/DataDirPage';
 
 export default function App() {
   return (
@@ -10,6 +11,7 @@ export default function App() {
         <Route path="/" element={<HomePage />} />
         <Route path="/chat/:sessionId?" element={<ChatPage />} />
         <Route path="/settings" element={<SettingsPage />} />
+        <Route path="/data-dir" element={<DataDirPage />} />
       </Routes>
     </div>
   );

@@ -6,11 +6,16 @@ import { configRouter } from './routes/config';
 import { verifyRouter } from './routes/verify';
 import { modelProvidersRouter } from './routes/model-providers';
 import { piCheckRouter } from './routes/pi-check';
+import { dataDirRouter } from './routes/data-dir';
 import { errorHandler } from './middleware/errorHandler';
+import { initDataPaths } from './services/pi-config';
 import { DEFAULT_PORT } from '@greenhorn/shared/constants';
 
 const app: Express = express();
 const PORT = process.env.PORT || DEFAULT_PORT;
+
+// 初始化数据目录（启动时设置 PI_CODING_AGENT_DIR）
+initDataPaths();
 
 app.use(cors());
 app.use(express.json());
@@ -21,6 +26,7 @@ app.use('/api/config', configRouter);
 app.use('/api/config', verifyRouter);
 app.use('/api/model-providers', modelProvidersRouter);
 app.use('/api/pi', piCheckRouter);
+app.use('/api/data-dir', dataDirRouter);
 
 // 生产环境下 serve 前端静态文件
 if (process.env.NODE_ENV === 'production') {
