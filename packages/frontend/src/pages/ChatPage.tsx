@@ -1,33 +1,62 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+
+interface Config {
+  provider: string;
+  model: string;
+  apiKey: string;
+  baseUrl: string;
+}
 
 export default function ChatPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const provider = searchParams.get('provider') || 'pi';
   const engineName = provider === 'ollama' ? 'Ollama · 本地模型' : 'PI · 编码智能体';
+  const messagesEndRef = useRef<HTMLDivElement>(null);
   
   const [input, setInput] = useState('');
   const [messages, setMessages] = useState<Array<{role: string; content: string}>>([
     { role: 'assistant', content: '💬 你好！我是 AI 助手，有什么可以帮你？' }
   ]);
   const [isStreaming, setIsStreaming] = useState(false);
-  const [showThinking, setShowThinking] = useState(true);
-  const [isAborted, setIsAborted] = useState(false);
+  const [showThinking, setShowThinking] = useState(false);
+  const [thinkingContent, setThinkingContent] = useState('');
+  const [config, setConfig] = useState<Config>({
+    provider: 'deepseek',
+    model: 'deepseek-chat',
+    apiKey: '',
+    baseUrl: 'https://api.deepseek.com',
+  });
   
-  // 获取当前配置
+  // 加载当前配置
+  useEffect(() => {
+    fetch('/api/config')
+      .then(res => res.json())
+      .then((data: Config) => setConfig(data))
+      .catch(() => {});
+  }, []);
+  
+  // 自动滚动到底部
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages, thinkingContent, showThinking]);
+  
+  // 获取对话配置
   const getChatConfig = () => {
     if (provider === 'ollama') {
       return {
         baseUrl: 'http://localhost:11434',
         model: 'qwen3.5:9b',
         provider: 'ollama',
+        apiKey: '',
       };
     }
     return {
-      baseUrl: 'https://api.deepseek.com',
-      model: 'deepseek-chat',
-      provider: 'deepseek',
+      baseUrl: config.baseUrl,
+      model: config.model,
+      provider: config.provider,
+      apiKey: config.apiKey,
     };
   };
   
@@ -39,9 +68,15 @@ export default function ChatPage() {
     setMessages(prev => [...prev, { role: 'user', content: userMessage }]);
     setIsStreaming(true);
     setShowThinking(true);
-    setIsAborted(false);
+    setThinkingContent('');
     
-    const config = getChatConfig();
+    const chatConfig = getChatConfig();
+    
+    // 构建历史消息（排除系统提示词，只传 user/assistant 消息）
+    const history = messages
+      .filter(m => m.role === 'user' || m.role === 'assistant')
+      .slice(-10) // 保留最近10条
+      .map(m => ({ role: m.role, content: m.content }));
     
     try {
       const response = await fetch('/api/chat', {
@@ -49,10 +84,12 @@ export default function ChatPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           prompt: userMessage,
+          messages: history,
           context: {
-            baseUrl: config.baseUrl,
-            model: config.model,
-            provider: config.provider,
+            baseUrl: chatConfig.baseUrl,
+            model: chatConfig.model,
+            provider: chatConfig.provider,
+            apiKey: chatConfig.apiKey,
           },
         }),
       });
@@ -77,7 +114,7 @@ export default function ChatPage() {
             try {
               const data = JSON.parse(line.slice(6));
               if (data.type === 'text') {
-                assistantContent += data.content;
+                assistantContent = data.content;
                 setMessages(prev => {
                   const newMessages = [...prev];
                   if (newMessages[newMessages.length - 1]?.role === 'assistant') {
@@ -89,11 +126,12 @@ export default function ChatPage() {
                 });
               } else if (data.type === 'thinking') {
                 setShowThinking(true);
+                setThinkingContent(data.content);
               } else if (data.type === 'done') {
                 setShowThinking(false);
+                setThinkingContent('');
               } else if (data.type === 'error') {
                 setMessages(prev => [...prev, { role: 'assistant', content: `❌ ${data.message}` }]);
-                setIsAborted(true);
               }
             } catch (e) {
               // 忽略解析错误
@@ -106,13 +144,14 @@ export default function ChatPage() {
     } finally {
       setIsStreaming(false);
       setShowThinking(false);
+      setThinkingContent('');
     }
   };
   
   const handleStop = () => {
-    setIsAborted(true);
     setIsStreaming(false);
     setShowThinking(false);
+    setThinkingContent('');
   };
   
   return (
@@ -142,7 +181,25 @@ export default function ChatPage() {
             </div>
           </div>
         ))}
-        {showThinking && (
+        
+        {/* 思考过程区块 */}
+        {showThinking && thinkingContent && (
+          <div className="flex justify-start">
+            <div className="max-w-[80%] bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl rounded-bl-md px-4 py-3">
+              <div className="flex items-center gap-2 text-gray-400 text-sm mb-1">
+                <span>🧠</span>
+                <span>思考中</span>
+                <span className="animate-pulse">...</span>
+              </div>
+              <p className="text-sm text-gray-500 dark:text-gray-400 whitespace-pre-wrap">
+                {thinkingContent}
+              </p>
+            </div>
+          </div>
+        )}
+        
+        {/* 思考中无内容时的占位 */}
+        {showThinking && !thinkingContent && (
           <div className="flex justify-start">
             <div className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl rounded-bl-md px-4 py-3">
               <div className="flex items-center gap-2 text-gray-400">
@@ -153,13 +210,8 @@ export default function ChatPage() {
             </div>
           </div>
         )}
-        {isAborted && (
-          <div className="flex justify-start">
-            <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-700 rounded-2xl rounded-bl-md px-4 py-3 text-sm text-yellow-600 dark:text-yellow-400">
-              ⏹ 已停止
-            </div>
-          </div>
-        )}
+        
+        <div ref={messagesEndRef} />
       </div>
       
       {/* 输入区域 */}

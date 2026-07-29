@@ -1,5 +1,52 @@
 import { useNavigate } from 'react-router-dom';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+
+// 供应商 → 模型映射
+const PROVIDER_MODELS: Record<string, Array<{ id: string; name: string }>> = {
+  deepseek: [
+    { id: 'deepseek-chat', name: 'DeepSeek V3' },
+    { id: 'deepseek-reasoner', name: 'DeepSeek R1' },
+  ],
+  ollama: [
+    { id: 'qwen3.5:9b', name: 'Qwen3.5 (9B)' },
+    { id: 'qwen3.5:32b', name: 'Qwen3.5 (32B)' },
+    { id: 'llama3.1:8b', name: 'Llama 3.1 (8B)' },
+  ],
+  tongyi: [
+    { id: 'qwen-max', name: 'Qwen Max' },
+    { id: 'qwen-plus', name: 'Qwen Plus' },
+    { id: 'qwen-turbo', name: 'Qwen Turbo' },
+  ],
+  zhipu: [
+    { id: 'glm-4-plus', name: 'GLM-4 Plus' },
+    { id: 'glm-4-air', name: 'GLM-4-Air' },
+  ],
+  doubao: [
+    { id: 'doubao-1.5-pro-256k', name: '豆包 Pro (256K)' },
+    { id: 'doubao-1.5-lite-32k', name: '豆包 Lite (32K)' },
+  ],
+  moonshot: [
+    { id: 'moonshot-v1-8k', name: 'Moonshot v1 (8K)' },
+    { id: 'moonshot-v1-32k', name: 'Moonshot v1 (32K)' },
+    { id: 'moonshot-v1-128k', name: 'Moonshot v1 (128K)' },
+  ],
+  openai: [
+    { id: 'gpt-4o', name: 'GPT-4o' },
+    { id: 'gpt-4o-mini', name: 'GPT-4o Mini' },
+    { id: 'o1-mini', name: 'o1-mini' },
+  ],
+};
+
+// 供应商 → 默认 baseUrl
+const PROVIDER_URLS: Record<string, string> = {
+  deepseek: 'https://api.deepseek.com',
+  ollama: 'http://localhost:11434',
+  tongyi: 'https://dashscope.aliyuncs.com/compatible-mode/v1',
+  zhipu: 'https://open.bigmodel.cn/api/paas/v4',
+  doubao: 'https://ark.cn-beijing.volces.com/api/v3',
+  moonshot: 'https://api.moonshot.cn/v1',
+  openai: 'https://api.openai.com/v1',
+};
 
 export default function SettingsPage() {
   const navigate = useNavigate();
@@ -9,6 +56,38 @@ export default function SettingsPage() {
   const [theme, setTheme] = useState<'light' | 'dark' | 'system'>('light');
   const [showHelp, setShowHelp] = useState(true);
   const [verifyStatus, setVerifyStatus] = useState<'idle' | 'verifying' | 'success' | 'fail'>('idle');
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'success' | 'error'>('idle');
+  
+  // 加载当前配置
+  useEffect(() => {
+    fetch('/api/config')
+      .then(res => res.json())
+      .then(data => {
+        setProvider(data.provider || 'deepseek');
+        setModel(data.model || 'deepseek-chat');
+        setApiKey(data.apiKey || '');
+        setTheme(data.theme || 'light');
+        setShowHelp(data.showHelp !== false);
+      })
+      .catch(() => {});
+  }, []);
+  
+  // 供应商切换时自动切换模型和 URL
+  const handleProviderChange = (newProvider: string) => {
+    setProvider(newProvider);
+    const models = PROVIDER_MODELS[newProvider];
+    if (models && models.length > 0) {
+      setModel(models[0].id);
+    }
+    // Ollama 不需要 API Key
+    if (newProvider === 'ollama') {
+      setApiKey('sk-ollama-local');
+    }
+  };
+  
+  // 当前供应商的模型列表
+  const currentModels = PROVIDER_MODELS[provider] || PROVIDER_MODELS.deepseek;
+  const currentBaseUrl = PROVIDER_URLS[provider] || PROVIDER_URLS.deepseek;
   
   const handleVerify = async () => {
     if (!apiKey) return;
@@ -17,21 +96,39 @@ export default function SettingsPage() {
       const res = await fetch('/api/config/verify', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ provider, apiKey }),
+        body: JSON.stringify({ provider, apiKey, baseUrl: currentBaseUrl, modelId: model }),
       });
       const data = await res.json();
       setVerifyStatus(data.success ? 'success' : 'fail');
+      setTimeout(() => setVerifyStatus('idle'), 3000);
     } catch {
       setVerifyStatus('fail');
+      setTimeout(() => setVerifyStatus('idle'), 3000);
     }
   };
   
   const handleSave = async () => {
-    await fetch('/api/config', {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ provider, model, apiKey, theme, showHelp }),
-    });
+    setSaveStatus('saving');
+    try {
+      const res = await fetch('/api/config', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          provider,
+          model,
+          apiKey: provider === 'ollama' ? '' : apiKey,
+          baseUrl: currentBaseUrl,
+          theme,
+          showHelp,
+        }),
+      });
+      const data = await res.json();
+      setSaveStatus(data.success ? 'success' : 'error');
+      setTimeout(() => setSaveStatus('idle'), 3000);
+    } catch {
+      setSaveStatus('error');
+      setTimeout(() => setSaveStatus('idle'), 3000);
+    }
   };
   
   return (
@@ -51,7 +148,7 @@ export default function SettingsPage() {
             <label className="block text-sm text-gray-500 dark:text-gray-400 mb-1">模型提供商</label>
             <select
               value={provider}
-              onChange={e => setProvider(e.target.value)}
+              onChange={e => handleProviderChange(e.target.value)}
               className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-green-500"
             >
               <option value="deepseek">DeepSeek</option>
@@ -70,8 +167,9 @@ export default function SettingsPage() {
               onChange={e => setModel(e.target.value)}
               className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-green-500"
             >
-              <option value="deepseek-chat">DeepSeek V3</option>
-              <option value="deepseek-reasoner">DeepSeek R1</option>
+              {currentModels.map(m => (
+                <option key={m.id} value={m.id}>{m.name}</option>
+              ))}
             </select>
           </div>
           <div>
@@ -84,12 +182,13 @@ export default function SettingsPage() {
                 type="password"
                 value={apiKey}
                 onChange={e => setApiKey(e.target.value)}
-                placeholder="粘贴你的 API Key 到这里"
-                className="flex-1 px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-green-500"
+                placeholder={provider === 'ollama' ? 'Ollama 无需 API Key' : '粘贴你的 API Key 到这里'}
+                disabled={provider === 'ollama'}
+                className="flex-1 px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-green-500 disabled:opacity-50"
               />
               <button
                 onClick={handleVerify}
-                disabled={!apiKey || verifyStatus === 'verifying'}
+                disabled={!apiKey || verifyStatus === 'verifying' || provider === 'ollama'}
                 className="px-3 py-2 bg-green-500 hover:bg-green-600 disabled:bg-gray-300 dark:disabled:bg-gray-600 text-white rounded-lg text-sm transition-colors"
               >
                 {verifyStatus === 'verifying' ? '验证中...' : '验证连接'}
@@ -103,8 +202,21 @@ export default function SettingsPage() {
             )}
           </div>
           <div>
+            <label className="block text-sm text-gray-500 dark:text-gray-400 mb-1">API 地址</label>
+            <input
+              type="text"
+              value={currentBaseUrl}
+              readOnly
+              className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 cursor-not-allowed"
+            />
+            <p className="text-xs text-gray-400 mt-1">根据选中的供应商自动填入</p>
+          </div>
+          <div>
             <p className="text-xs text-gray-400">
-              还没有 Key？<a href="https://platform.deepseek.com/api-keys" target="_blank" rel="noopener noreferrer" className="text-green-500 hover:underline">去 DeepSeek 官网获取</a>
+              还没有 Key？
+              <a href="https://platform.deepseek.com/api-keys" target="_blank" rel="noopener noreferrer" className="text-green-500 hover:underline ml-1">
+                去 {provider === 'deepseek' ? 'DeepSeek' : provider} 官网获取
+              </a>
             </p>
           </div>
         </div>
@@ -149,12 +261,22 @@ export default function SettingsPage() {
         </div>
       </section>
       
-      {/* 保存按钮 */}
+      {/* 保存按钮（带反馈） */}
       <button
         onClick={handleSave}
-        className="w-full px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-xl transition-colors"
+        disabled={saveStatus === 'saving'}
+        className={`w-full px-4 py-2 rounded-xl transition-colors text-white ${
+          saveStatus === 'success'
+            ? 'bg-green-500'
+            : saveStatus === 'error'
+            ? 'bg-red-500'
+            : 'bg-green-500 hover:bg-green-600 disabled:bg-gray-300 dark:disabled:bg-gray-600'
+        }`}
       >
-        保存设置
+        {saveStatus === 'saving' ? '⏳ 保存中...' :
+         saveStatus === 'success' ? '✅ 已保存！' :
+         saveStatus === 'error' ? '❌ 保存失败，再试一次' :
+         '保存设置'}
       </button>
       
       {/* 高级设置入口 */}

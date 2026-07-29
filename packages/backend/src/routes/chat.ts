@@ -4,17 +4,21 @@ import { streamChat } from '../services/chat-engine';
 export const chatRouter: Router = Router();
 
 chatRouter.post('/', async (req: Request, res: Response) => {
-  const { prompt, context } = req.body;
+  const { prompt, context, messages: history } = req.body;
   
   if (!prompt || typeof prompt !== 'string') {
     res.status(400).json({ success: false, message: '请提供要发送的消息' });
     return;
   }
   
-  // 从请求中获取模型配置，或从环境变量读取默认值
+  // 从请求中获取配置
+  const provider = context?.provider || 'deepseek';
   const model = context?.model || process.env.DEFAULT_MODEL || 'deepseek-chat';
   const apiKey = context?.apiKey || process.env.DEEPSEEK_API_KEY || '';
   const baseUrl = context?.baseUrl || process.env.API_BASE_URL || 'https://api.deepseek.com';
+  
+  // 判断是否为 Ollama（无需 API Key）
+  const isOllama = provider === 'ollama' || baseUrl.includes('localhost:11434');
   
   // 设置 SSE 响应头
   res.setHeader('Content-Type', 'text/event-stream');
@@ -23,16 +27,16 @@ chatRouter.post('/', async (req: Request, res: Response) => {
   res.setHeader('X-Accel-Buffering', 'no');
   
   try {
-    if (!apiKey) {
-      // 无 API Key 时返回模拟数据（用于演示/开发）
-      res.write(`data: ${JSON.stringify({ type: 'text', content: '💬 你好！我是 AI 助手。\n\n看起来还没有配置 API Key，请先去设置页面配置后再来对话。' })}\n\n`);
+    // 非 Ollama 且无 API Key 时返回提示
+    if (!isOllama && !apiKey) {
+      res.write(`data: ${JSON.stringify({ type: 'text', content: '💬 你好！我是 AI 助手。\n\n看起来还没有配置 API Key，请先去 [设置页面](/settings) 配置后再来对话。' })}\n\n`);
       res.write(`data: ${JSON.stringify({ type: 'done', reason: 'complete' })}\n\n`);
       res.end();
       return;
     }
     
-    // 使用真实 API 调用
-    for await (const event of streamChat(prompt, [], { model, apiKey, baseUrl })) {
+    // 使用真实 API 调用，传入历史消息
+    for await (const event of streamChat(prompt, history || [], { model, apiKey, baseUrl })) {
       if (res.destroyed) break;
       res.write(`data: ${JSON.stringify(event)}\n\n`);
     }
