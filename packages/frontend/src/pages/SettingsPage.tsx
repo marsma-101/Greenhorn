@@ -37,10 +37,10 @@ const PROVIDER_MODELS: Record<string, Array<{ id: string; name: string }>> = {
   ],
 };
 
-// 供应商 → 默认 baseUrl
+// 供应商 → 默认 baseUrl（包含 API 版本路径，chat-engine 会在后面加 /chat/completions）
 const PROVIDER_URLS: Record<string, string> = {
-  deepseek: 'https://api.deepseek.com',
-  ollama: 'http://localhost:11434',
+  deepseek: 'https://api.deepseek.com/v1',
+  ollama: 'http://localhost:11434/v1',
   tongyi: 'https://dashscope.aliyuncs.com/compatible-mode/v1',
   zhipu: 'https://open.bigmodel.cn/api/paas/v4',
   doubao: 'https://ark.cn-beijing.volces.com/api/v3',
