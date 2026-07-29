@@ -1,6 +1,7 @@
 import express, { Express } from 'express';
 import cors from 'cors';
 import path from 'path';
+import { fileURLToPath } from 'url';
 import { chatRouter } from './routes/chat';
 import { configRouter } from './routes/config';
 import { verifyRouter } from './routes/verify';
@@ -32,7 +33,9 @@ app.use('/api/ollama', ollamaRouter);
 
 // 生产环境下 serve 前端静态文件
 if (process.env.NODE_ENV === 'production') {
-  const frontendDist = path.join(__dirname, '../../frontend/dist');
+  const __filename = fileURLToPath(import.meta.url);
+  const __dirname = path.dirname(__filename);
+  const frontendDist = path.resolve(__dirname, '../../frontend/dist');
   app.use(express.static(frontendDist));
   app.get('*', (req, res) => {
     res.sendFile(path.join(frontendDist, 'index.html'));
