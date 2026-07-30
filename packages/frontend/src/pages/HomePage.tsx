@@ -23,7 +23,7 @@ export default function HomePage() {
   
   // 检测 PI 是否已安装
   useEffect(() => {
-    fetch('/api/pi/check')
+    fetch('/api/pi/')
       .then(res => res.json())
       .then((data: PiStatus) => setPiStatus(data.installed ? 'ready' : 'missing'))
       .catch(() => setPiStatus('missing'));

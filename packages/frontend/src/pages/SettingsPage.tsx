@@ -48,6 +48,17 @@ const PROVIDER_URLS: Record<string, string> = {
   openai: 'https://api.openai.com/v1',
 };
 
+// 供应商 → 注册/获取 Key 的链接
+const PROVIDER_REGISTER_URLS: Record<string, string> = {
+  deepseek: 'https://platform.deepseek.com/api_keys',
+  tongyi: 'https://help.aliyun.com/zh/model-studio/getting-started/first-api-call-to-qwen',
+  zhipu: 'https://open.bigmodel.cn/usercenter/apikeys',
+  doubao: 'https://console.volcengine.com/ark/region:ark+cn-beijing/apiKey',
+  moonshot: 'https://platform.moonshot.cn/console/api-keys',
+  openai: 'https://platform.openai.com/api-keys',
+  // Ollama 无需注册，没有链接
+};
+
 export default function SettingsPage() {
   const navigate = useNavigate();
   const [apiKey, setApiKey] = useState('');
@@ -145,7 +156,17 @@ export default function SettingsPage() {
         <h2 className="font-semibold mb-4">⚙️ 模型</h2>
         <div className="space-y-4">
           <div>
-            <label className="block text-sm text-gray-500 dark:text-gray-400 mb-1">模型提供商</label>
+            <label className="block text-sm text-gray-500 dark:text-gray-400 mb-1">
+              模型提供商
+              {showHelp && (
+                <span className="ml-1 text-gray-300 cursor-help group relative" title="选择 AI 模型供应商，不同供应商的模型能力不同">
+                  (?)
+                  <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-1.5 bg-gray-800 text-white text-xs rounded-lg whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 shadow-lg">
+                    选择 AI 模型供应商，不同供应商的模型能力不同
+                  </span>
+                </span>
+              )}
+            </label>
             <select
               value={provider}
               onChange={e => handleProviderChange(e.target.value)}
@@ -161,7 +182,17 @@ export default function SettingsPage() {
             </select>
           </div>
           <div>
-            <label className="block text-sm text-gray-500 dark:text-gray-400 mb-1">模型</label>
+            <label className="block text-sm text-gray-500 dark:text-gray-400 mb-1">
+              模型
+              {showHelp && (
+                <span className="ml-1 text-gray-300 cursor-help group relative" title="不同模型能力有差异，推荐选标有 ⭐ 的模型">
+                  (?)
+                  <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-1.5 bg-gray-800 text-white text-xs rounded-lg whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 shadow-lg">
+                    不同模型能力有差异，推荐选标有 ⭐ 的模型
+                  </span>
+                </span>
+              )}
+            </label>
             <select
               value={model}
               onChange={e => setModel(e.target.value)}
@@ -175,7 +206,14 @@ export default function SettingsPage() {
           <div>
             <label className="block text-sm text-gray-500 dark:text-gray-400 mb-1">
               API Key
-              <span className="ml-1 text-gray-300 cursor-help" title="API Key 就像密码，用来验证你的身份。">(?)</span>
+              {showHelp && (
+                <span className="ml-1 text-gray-300 cursor-help group relative" title="API Key 就像密码，用来验证你的身份。从供应商官网获取后粘贴到这里">
+                  (?)
+                  <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-1.5 bg-gray-800 text-white text-xs rounded-lg whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 shadow-lg">
+                    API Key 就像密码，用来验证你的身份。从供应商官网获取后粘贴到这里
+                  </span>
+                </span>
+              )}
             </label>
             <div className="flex gap-2">
               <input
@@ -202,7 +240,17 @@ export default function SettingsPage() {
             )}
           </div>
           <div>
-            <label className="block text-sm text-gray-500 dark:text-gray-400 mb-1">API 地址</label>
+            <label className="block text-sm text-gray-500 dark:text-gray-400 mb-1">
+              API 地址
+              {showHelp && (
+                <span className="ml-1 text-gray-300 cursor-help group relative" title="API 服务器地址，选择供应商后自动填入，一般不需要手动修改">
+                  (?)
+                  <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-1.5 bg-gray-800 text-white text-xs rounded-lg whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 shadow-lg">
+                    API 服务器地址，选择供应商后自动填入，一般不需要手动修改
+                  </span>
+                </span>
+              )}
+            </label>
             <input
               type="text"
               value={currentBaseUrl}
@@ -213,10 +261,16 @@ export default function SettingsPage() {
           </div>
           <div>
             <p className="text-xs text-gray-400">
-              还没有 Key？
-              <a href="https://platform.deepseek.com/api-keys" target="_blank" rel="noopener noreferrer" className="text-green-500 hover:underline ml-1">
-                去 {provider === 'deepseek' ? 'DeepSeek' : provider} 官网获取
-              </a>
+              {provider === 'ollama' ? (
+                'Ollama 本机运行，无需 API Key'
+              ) : (
+                <>
+                  还没有 Key？
+                  <a href={PROVIDER_REGISTER_URLS[provider] || PROVIDER_REGISTER_URLS.deepseek} target="_blank" rel="noopener noreferrer" className="text-green-500 hover:underline ml-1">
+                    去官网获取
+                  </a>
+                </>
+              )}
             </p>
           </div>
         </div>

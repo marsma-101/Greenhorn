@@ -1,7 +1,7 @@
 import express, { Express } from 'express';
 import cors from 'cors';
 import path from 'path';
-import { fileURLToPath } from 'url';
+import { existsSync } from 'fs';
 import { chatRouter } from './routes/chat';
 import { configRouter } from './routes/config';
 import { verifyRouter } from './routes/verify';
@@ -9,6 +9,7 @@ import { modelProvidersRouter } from './routes/model-providers';
 import { piCheckRouter } from './routes/pi-check';
 import { dataDirRouter } from './routes/data-dir';
 import { ollamaRouter } from './routes/ollama';
+import { setupRouter } from './routes/setup';
 import { errorHandler } from './middleware/errorHandler';
 import { initDataPaths } from './services/pi-config';
 import { DEFAULT_PORT } from '@greenhorn/shared/constants';
@@ -30,17 +31,22 @@ app.use('/api/model-providers', modelProvidersRouter);
 app.use('/api/pi', piCheckRouter);
 app.use('/api/data-dir', dataDirRouter);
 app.use('/api/ollama', ollamaRouter);
+app.use('/api/setup', setupRouter);
 
-// 生产环境下 serve 前端静态文件
-if (process.env.NODE_ENV === 'production') {
-  const __filename = fileURLToPath(import.meta.url);
-  const __dirname = path.dirname(__filename);
-  const frontendDist = path.resolve(__dirname, '../../frontend/dist');
+// serve 前端静态文件（如果已编译）
+const frontendDist = path.resolve(__dirname, '../../frontend/dist');
+if (existsSync(frontendDist)) {
   app.use(express.static(frontendDist));
-  app.get('*', (req, res) => {
-    res.sendFile(path.join(frontendDist, 'index.html'));
-  });
 }
+
+// SPA fallback: 所有非 API 路由返回 index.html
+app.get('*', (req, res) => {
+  if (req.path.startsWith('/api/')) return;
+  const indexHtml = path.join(frontendDist, 'index.html');
+  if (existsSync(indexHtml)) {
+    res.sendFile(indexHtml);
+  }
+});
 
 // 错误处理
 app.use(errorHandler);

@@ -3,21 +3,20 @@
   "version": "0.1.0",
   "private": true,
   "description": "GreenHorn 共享类型定义和常量",
-  "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
     ".": {
-      "import": "./dist/index.js",
-      "types": "./dist/index.d.ts"
+      "types": "./dist/index.d.ts",
+      "require": "./dist/index.js"
     },
     "./constants": {
-      "import": "./dist/constants/index.js",
-      "types": "./dist/constants/index.d.ts"
+      "types": "./dist/constants/index.d.ts",
+      "require": "./dist/constants/index.js"
     },
     "./types/*": {
-      "import": "./dist/types/*.js",
-      "types": "./dist/types/*.d.ts"
+      "types": "./dist/types/*.d.ts",
+      "require": "./dist/types/*.js"
     }
   },
   "files": [

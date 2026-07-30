@@ -47,3 +47,9 @@ agent-data/
 *.pt
 *.onnx
 *.model
+
+# Bundled Node.js (80MB, too large for GitHub)
+scripts/node/
+
+# Vite temp files
+*.timestamp-*

@@ -1,8 +1,7 @@
 /**
  * GreenHorn 启动器
  * 
- * 一键启动：双击本脚本 → 自动打开浏览器
- * 点击按钮 → 启动后端 → 打开应用
+ * 双击启动 → 自动打开浏览器 → 点击按钮 → 启动后端 → 打开应用
  * 
  * 纯 Node.js 内置模块，无需额外依赖
  */
@@ -12,12 +11,26 @@ const path = require('path');
 const fs = require('fs');
 
 const PORT = 3001;
-const BACKEND_PORT = 3000;
-const FRONTEND_PORT = 5173;
+const BACKEND_PORT = 1001;
 const PROJECT_DIR = path.resolve(__dirname, '..');
+const HAS_FRONTEND_BUILD = fs.existsSync(path.join(PROJECT_DIR, 'packages', 'frontend', 'dist', 'index.html'));
+
+// 查找 node 可执行文件：优先便携版，回退系统 PATH
+function findNodeExe() {
+  const bundled = path.join(__dirname, 'node', 'node.exe');
+  if (fs.existsSync(bundled)) {
+    log('使用便携版 Node.js');
+    return bundled;
+  }
+  return 'node';
+}
+
+// 生产模式下 APP_URL 是后端端口（单端口），开发模式是 Vite 端口（双端口）
+const APP_URL = HAS_FRONTEND_BUILD
+  ? `http://localhost:${BACKEND_PORT}`
+  : `http://localhost:5173`;
 
 let backendProcess = null;
-let frontendProcess = null;
 const logs = [];
 
 function log(msg) {
@@ -28,7 +41,6 @@ function log(msg) {
 }
 
 function getHTML(statusMsg, statusType) {
-  const APP_URL = `http://localhost:${FRONTEND_PORT}`;
   return `<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
@@ -110,6 +122,7 @@ function getHTML(statusMsg, statusType) {
 const logEl = document.getElementById('log');
 const btn = document.getElementById('btnStart');
 const statusEl = document.getElementById('status');
+const APP_URL = '${APP_URL}';
 
 async function refreshLog() {
   try {
@@ -150,12 +163,12 @@ btn.onclick = async function() {
     await new Promise(r => setTimeout(r, 2000));
     statusEl.textContent = '等待后端就绪... (' + ((i+1)*2) + '秒)';
     try {
-      const r = await fetch('http://localhost:${BACKEND_PORT}/api/config');
+      const r = await fetch(APP_URL + '/api/config');
       if (r.ok) {
         statusEl.className = 'status success';
         statusEl.textContent = '✅ 后端已就绪！正在打开...';
         setTimeout(() => {
-          window.open('http://localhost:${FRONTEND_PORT}', '_blank');
+          window.open(APP_URL, '_blank');
           statusEl.textContent = '🎉 GreenHorn 已打开！关闭本页面不影响使用。';
           btn.textContent = '✅ 已启动';
         }, 1500);
@@ -176,7 +189,6 @@ btn.onclick = async function() {
 
 // 创建服务器
 const server = http.createServer((req, res) => {
-  // CORS
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST');
 
@@ -200,30 +212,23 @@ const server = http.createServer((req, res) => {
       return;
     }
     
-    const frontendDist = path.join(PROJECT_DIR, 'packages', 'frontend', 'dist');
-    const hasBuild = fs.existsSync(path.join(frontendDist, 'index.html'));
+    const hasBuild = fs.existsSync(path.join(PROJECT_DIR, 'packages', 'frontend', 'dist', 'index.html'));
     
     if (hasBuild) {
       log('检测到前端已构建 → 使用生产模式（单端口）');
-      backendProcess = spawn('pnpm', ['--filter', '@greenhorn/backend', 'start'], {
-        cwd: PROJECT_DIR, shell: true,
-        env: { ...process.env, NODE_ENV: 'production', PATH: process.env.PATH },
+      const nodeExe = findNodeExe();
+      backendProcess = spawn(nodeExe, [path.join(PROJECT_DIR, 'packages', 'backend', 'dist', 'index.js')], {
+        cwd: PROJECT_DIR,
+        env: { ...process.env, NODE_ENV: 'production' },
         stdio: ['pipe', 'pipe', 'pipe'],
       });
     } else {
       log('未检测到前端构建 → 使用开发模式（双端口）');
       backendProcess = spawn('pnpm', ['--filter', '@greenhorn/backend', 'dev'], {
         cwd: PROJECT_DIR, shell: true,
-        env: { ...process.env, PATH: process.env.PATH },
+        env: { ...process.env },
         stdio: ['pipe', 'pipe', 'pipe'],
       });
-      frontendProcess = spawn('pnpm', ['--filter', '@greenhorn/frontend', 'dev'], {
-        cwd: PROJECT_DIR, shell: true,
-        env: { ...process.env, PATH: process.env.PATH },
-        stdio: ['pipe', 'pipe', 'pipe'],
-      });
-      frontendProcess.stdout.on('data', d => log('[前端] ' + d.toString().trim().slice(0, 100)));
-      frontendProcess.stderr.on('data', d => log('[前端] ' + d.toString().trim().slice(0, 100)));
     }
     
     backendProcess.stdout.on('data', d => log('[后端] ' + d.toString().trim().slice(0, 100)));

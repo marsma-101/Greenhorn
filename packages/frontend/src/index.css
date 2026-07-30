@@ -8,3 +8,21 @@
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
   }
 }
+
+/* 打字机动画 - 用于流式输出 */
+@keyframes typing-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+.typing-cursor::after {
+  content: '▍';
+  animation: typing-blink 0.8s step-end infinite;
+  color: #22c55e;
+  margin-left: 1px;
+}
+
+/* 加速模式 - 打字机效果更快 */
+.typing-fast .typing-cursor::after {
+  animation-duration: 0.3s;
+}

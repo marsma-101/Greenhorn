@@ -31,6 +31,17 @@ function readAuth(): Record<string, { apiKey?: string; baseUrl?: string }> {
   return {};
 }
 
+// 供应商 URL 映射（Ollama 特殊处理）
+const PROVIDER_URLS: Record<string, string> = {
+  deepseek: 'https://api.deepseek.com/v1',
+  ollama: 'http://localhost:11434/v1',
+  tongyi: 'https://dashscope.aliyuncs.com/compatible-mode/v1',
+  zhipu: 'https://open.bigmodel.cn/api/paas/v4',
+  doubao: 'https://ark.cn-beijing.volces.com/api/v3',
+  moonshot: 'https://api.moonshot.cn/v1',
+  openai: 'https://api.openai.com/v1',
+};
+
 // 写入 auth.json
 function writeAuth(auth: Record<string, { apiKey?: string; baseUrl?: string }>): void {
   const configDir = getConfigDir();
@@ -101,7 +112,7 @@ configRouter.put('/', async (req: Request, res: Response) => {
     const auth = readAuth();
     auth[provider] = {
       apiKey: apiKey || '',
-      baseUrl: baseUrl || `https://api.${provider}.com`,
+      baseUrl: baseUrl || PROVIDER_URLS[provider] || `https://api.${provider}.com`,
     };
     writeAuth(auth);
     

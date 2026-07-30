@@ -1,6 +1,6 @@
 export const APP_NAME = 'GreenHorn';
 export const APP_VERSION = '0.1.0';
-export const DEFAULT_PORT = 3000;
+export const DEFAULT_PORT = 1001;
 export const DEFAULT_TEMPERATURE = 0.7;
 export const DEFAULT_MAX_TOKENS = 4096;
 export const DEFAULT_CONTEXT_LENGTH = 4096;

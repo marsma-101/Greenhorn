@@ -58,7 +58,38 @@ export async function* streamChat(
     
     if (!response.ok) {
       const errorBody = await response.text().catch(() => '');
-      yield { type: 'error', message: `API 请求失败 (${response.status}): ${errorBody}` };
+      // 提取关键错误信息，不暴露技术细节
+      let userMessage = '请求失败，请检查 API Key 或网络连接';
+      try {
+        const err = JSON.parse(errorBody);
+        if (err.error?.message) {
+          // 只显示简洁的语义化信息
+          const msg = err.error.message.toLowerCase();
+          if (msg.includes('auth') || msg.includes('key') || msg.includes('token') || msg.includes('api_key') || msg.includes('unauthorized') || msg.includes('forbidden')) {
+            userMessage = 'API Key 好像不对哦，检查有没有复制完整';
+          } else if (msg.includes('model') || msg.includes('not found')) {
+            userMessage = '模型名称不对，请检查设置页的模型选择';
+          } else if (msg.includes('rate') || msg.includes('quota') || msg.includes('limit')) {
+            userMessage = '请求太频繁了，稍等一会儿再试';
+          } else if (msg.includes('balance') || msg.includes('insufficient') || msg.includes('credit')) {
+            userMessage = '账户余额不足，去控制台充值后再试';
+          } else {
+            // 其他错误：截取关键信息辅助排查
+            const detail = err.error.message.slice(0, 100);
+            userMessage = `请求失败: ${detail}`;
+          }
+        } else {
+          // 有错误体但没有 error.message，截取前 100 字符
+          const raw = errorBody.slice(0, 100);
+          userMessage = `请求失败: ${raw}`;
+        }
+      } catch {
+        // JSON 解析失败，用默认提示
+        if (errorBody) {
+          userMessage = `请求失败: ${errorBody.slice(0, 100)}`;
+        }
+      }
+      yield { type: 'error', message: userMessage };
       return;
     }
     
@@ -95,8 +126,8 @@ export async function* streamChat(
           const delta = parsed.choices?.[0]?.delta;
           
           if (delta?.content) {
-            // 模拟思考过程（前几句标记为 thinking）
-            const isThinking = content.length < 5;
+            // 模拟思考过程（前 20 个字符标记为 thinking）
+            const isThinking = content.length < 20;
             content += delta.content;
             yield {
               type: isThinking ? 'thinking' : 'text',
@@ -159,9 +190,9 @@ export async function verifyApiKey(
     }
     
     const errorBody = await response.text().catch(() => '');
-    return { success: false, message: `Key 好像不对哦 (${response.status})` };
-  } catch (error: any) {
-    if (error?.name === 'AbortError') {
+    return { success: false, message: 'Key 好像不对哦，检查有没有复制完整' };
+  } catch (error: unknown) {
+    if (error instanceof Error && error.name === 'AbortError') {
       return { success: false, message: '连接超时（10秒），检查网络或 API 地址' };
     }
     return { success: false, message: '网络连接失败，请检查网络' };

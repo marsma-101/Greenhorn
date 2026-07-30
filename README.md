@@ -67,7 +67,7 @@ npm install
 npm run dev
 
 # Open in browser
-# http://localhost:3000
+# http://localhost:1001
 ```
 
 ### Documentation
@@ -129,7 +129,7 @@ npm install
 npm run dev
 
 # 在浏览器中打开
-# http://localhost:3000
+# http://localhost:1001
 ```
 
 ### 文档
