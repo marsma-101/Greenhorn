@@ -215,7 +215,7 @@ const ENGINE_DETECTION_CONFIGS: EngineDetectionConfig[] = [
       path.join(getAiAgentRoot(), 'codex', 'program'),
       path.join(os.homedir(), '.codex'),
     ],
-    markerFiles: ['package.json', 'config.json'],
+    markerFiles: ['package.json', 'README.md', 'Cargo.toml'],
     note: 'Codex 环境变量兼容性待验证',
   },
   {
@@ -235,7 +235,7 @@ const ENGINE_DETECTION_CONFIGS: EngineDetectionConfig[] = [
       path.join(getAiAgentRoot(), 'reasonix', 'program'),
       path.join(os.homedir(), 'reasonix'),
     ],
-    markerFiles: ['package.json'],
+    markerFiles: ['README.md', 'LICENSE', 'go.mod'],
     note: 'Reasonix 环境变量兼容性待验证',
   },
 ];

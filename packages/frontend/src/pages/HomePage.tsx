@@ -4,6 +4,7 @@ import { APP_NAME, ENGINES } from '@greenhorn/shared/constants';
 import type { EngineInfo } from '@greenhorn/shared/constants';
 import { useApp } from '../context/AppContext';
 import { IconLeaf, IconSparkles, IconPlus } from '../components/icons';
+import EngineInstallModal from '../components/EngineInstallModal';
 
 interface EngineStatus {
   id: string;
@@ -24,6 +25,7 @@ export default function HomePage() {
   const [locationWarning, setLocationWarning] = useState<string | null>(null);
   const [showWelcome, setShowWelcome] = useState(true);
   const [showGuide, setShowGuide] = useState(false);
+  const [installingEngine, setInstallingEngine] = useState<EngineInfo | null>(null);
 
   useEffect(() => {
     fetch('/api/engines/status')
@@ -62,8 +64,14 @@ export default function HomePage() {
     if (engine.status === 'ready') {
       navigate(`/chat?engine=${engine.id}`);
     } else {
-      navigate(`/setup?engine=${engine.id}`);
+      setInstallingEngine(engine);
     }
+  };
+
+  const handleEngineInstalled = (engineId: string) => {
+    setEngines(prev =>
+      prev.map(e => (e.id === engineId ? { ...e, status: 'ready' } : e))
+    );
   };
 
   return (
@@ -260,6 +268,14 @@ export default function HomePage() {
             </button>
           </div>
         </div>
+      )}
+
+      {installingEngine && (
+        <EngineInstallModal
+          engine={installingEngine}
+          onClose={() => setInstallingEngine(null)}
+          onInstalled={handleEngineInstalled}
+        />
       )}
     </div>
   );
