@@ -205,7 +205,7 @@ const ENGINE_DETECTION_CONFIGS: EngineDetectionConfig[] = [
       path.join(getAiAgentRoot(), 'claude-code', 'program'),
       path.join(os.homedir(), '.claude'),
     ],
-    markerFiles: ['package.json', 'settings.json'],
+    markerFiles: ['README.md', 'LICENSE.md', 'Script'],
     note: 'Claude Code 环境变量兼容性待验证',
   },
   {
