@@ -1,5 +1,5 @@
 import path from 'path';
-import { existsSync, mkdirSync, copyFileSync, readdirSync, writeFileSync } from 'fs';
+import { existsSync, mkdirSync, copyFileSync, readdirSync, writeFileSync, rmSync } from 'fs';
 import { execSync } from 'child_process';
 import { getEnginePaths, getAiAgentRoot } from '../ai-agent-manager';
 
@@ -127,13 +127,18 @@ export class EngineInstaller {
         success: true,
         engineId,
         installPath: programDir,
-        message: `${source.name} 已安装，无需重复安装`,
+        message: `${source.name} 已安装，无需重复安装。如需重新安装，请设置 reinstall=true`,
         progress: this.progress,
       };
     }
 
     if (options.reinstall && existsSync(programDir)) {
-      this.addProgress('checking', `清理旧版本...`, 10);
+      this.addProgress('checking', `清理旧版本 ${source.name}...`, 10);
+      try {
+        rmSync(programDir, { recursive: true, force: true });
+      } catch (err: any) {
+        this.addProgress('checking', `清理警告: ${err.message}`, 12);
+      }
     }
 
     mkdirSync(programDir, { recursive: true });
@@ -195,30 +200,57 @@ export class EngineInstaller {
     this.addProgress('cloning', `从 GitHub 拉取 ${source.name} 源码...`, 20);
 
     const mirrorUrls = this.buildMirrorUrls(source.githubUrls[0]);
+    let lastError = '';
+    let cloned = false;
 
-    for (const url of mirrorUrls) {
+    for (let i = 0; i < mirrorUrls.length; i++) {
+      const url = mirrorUrls[i];
+      const sourceNames = ['GitHub 直连', '镜像 gh-proxy.com', '镜像 ghfast.top'];
+      const sourceName = sourceNames[i] || `来源 ${i + 1}`;
+
       try {
-        this.addProgress('cloning', `尝试: ${url}`, 25);
-        execSync(`git clone --depth 1 ${url} "${targetDir}"`, {
-          timeout: 30000,
+        this.addProgress('cloning', `尝试 ${sourceName}: ${url}`, 25 + i * 3);
+        execSync(`git clone --depth 1 "${url}" "${targetDir}"`, {
+          timeout: 15000,
           stdio: 'pipe',
+          maxBuffer: 10 * 1024 * 1024,
         });
+        cloned = true;
+        this.addProgress('cloning', `${sourceName} 下载成功`, 40);
         break;
-      } catch {
-        if (existsSync(targetDir) && readdirSync(targetDir).length === 0) {
-          // Clean up failed clone
+      } catch (err: any) {
+        lastError = err?.message || '未知错误';
+        this.addProgress('cloning', `${sourceName} 失败，尝试下一个...`, 28 + i * 3);
+
+        try {
+          if (existsSync(targetDir)) {
+            const files = readdirSync(targetDir);
+            if (files.length === 0 || files.includes('.git')) {
+              rmSync(targetDir, { recursive: true, force: true });
+              mkdirSync(targetDir, { recursive: true });
+            }
+          }
+        } catch {
+          // Ignore cleanup errors
         }
-        continue;
       }
     }
 
-    if (!existsSync(targetDir) || readdirSync(targetDir).length === 0) {
+    if (!cloned || !existsSync(targetDir) || readdirSync(targetDir).length === 0) {
       this.addProgress('error', `所有下载源均失败`, 100);
+      const errorHints = [
+        `无法从任何来源拉取 ${source.name} 源码`,
+        `建议操作：`,
+        `1. 检查网络连接是否正常`,
+        `2. 如果在国内网络环境，可能需要配置代理`,
+        `3. 尝试手动下载：${source.githubUrls[0]}`,
+        `4. 如有本地源码，可使用本地安装模式`,
+      ];
       return {
         success: false,
         engineId,
         installPath: targetDir,
-        message: `无法从任何来源拉取 ${source.name} 源码，请检查网络连接`,
+        message: errorHints.join('\n'),
         progress: this.progress,
       };
     }
