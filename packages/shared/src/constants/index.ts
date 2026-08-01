@@ -5,14 +5,58 @@ export const DEFAULT_TEMPERATURE = 0.7;
 export const DEFAULT_MAX_TOKENS = 4096;
 export const DEFAULT_CONTEXT_LENGTH = 4096;
 
-export const ENGINES = {
-  PI: {
+export interface EngineInfo {
+  id: string;
+  name: string;
+  description: string;
+  emoji: string;
+  status: 'ready' | 'installing' | 'missing';
+}
+
+export const ENGINES: EngineInfo[] = [
+  {
     id: 'pi',
-    name: 'PI · 编码智能体',
-    description: '帮你写代码、读代码、改代码',
-    defaultModel: 'deepseek/deepseek-chat',
+    name: 'PI',
+    description: '轻量级编程助手，专注代码开发',
+    emoji: '🍍',
+    status: 'ready',
   },
-} as const;
+  {
+    id: 'hermes',
+    name: 'Hermes',
+    description: '全平台自主智能体，可运行脚本操作文件',
+    emoji: '🔥',
+    status: 'missing',
+  },
+  {
+    id: 'claude-code',
+    name: 'Claude Code',
+    description: '编程专家，Anthropic 出品，代码能力强',
+    emoji: '🟠',
+    status: 'missing',
+  },
+  {
+    id: 'codex',
+    name: 'Codex',
+    description: 'OpenAI 编程助手，与 ChatGPT 同源',
+    emoji: '⚡',
+    status: 'missing',
+  },
+  {
+    id: 'opencode',
+    name: 'OpenCode',
+    description: '开源编程助手，功能全面',
+    emoji: '📝',
+    status: 'missing',
+  },
+  {
+    id: 'reasonix',
+    name: 'Reasonix',
+    description: 'DeepSeek 专用，推理能力强',
+    emoji: '💡',
+    status: 'missing',
+  },
+];
 
 export const PROVIDERS = {
   DEEPSEEK: {

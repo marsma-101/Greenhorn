@@ -59,6 +59,13 @@ const PROVIDER_REGISTER_URLS: Record<string, string> = {
   // Ollama 无需注册，没有链接
 };
 
+const PERSONA_TEMPLATES = [
+  { id: 'general', name: '通用助手', desc: '友好、简洁、全面' },
+  { id: 'coder', name: '代码专家', desc: '专注代码、调试、最佳实践' },
+  { id: 'translator', name: '翻译助手', desc: '专业翻译、多语言互译' },
+  { id: 'teacher', name: '教师模式', desc: '循循善诱、详细解释' },
+];
+
 export default function SettingsPage() {
   const navigate = useNavigate();
   const [apiKey, setApiKey] = useState('');
@@ -68,6 +75,8 @@ export default function SettingsPage() {
   const [showHelp, setShowHelp] = useState(true);
   const [verifyStatus, setVerifyStatus] = useState<'idle' | 'verifying' | 'success' | 'fail'>('idle');
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'success' | 'error'>('idle');
+  const [persona, setPersona] = useState('');
+  const [hideThinkingBlock, setHideThinkingBlock] = useState(false);
   
   // 加载当前配置
   useEffect(() => {
@@ -79,6 +88,17 @@ export default function SettingsPage() {
         setApiKey(data.apiKey || '');
         setTheme(data.theme || 'light');
         setShowHelp(data.showHelp !== false);
+      })
+      .catch(() => {});
+  }, []);
+
+  // 加载 settings.json
+  useEffect(() => {
+    fetch('/api/settings')
+      .then(res => res.json())
+      .then(data => {
+        setPersona(data.persona || '');
+        setHideThinkingBlock(data.hideThinkingBlock || false);
       })
       .catch(() => {});
   }, []);
@@ -121,20 +141,37 @@ export default function SettingsPage() {
   const handleSave = async () => {
     setSaveStatus('saving');
     try {
-      const res = await fetch('/api/config', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          provider,
-          model,
-          apiKey: provider === 'ollama' ? '' : apiKey,
-          baseUrl: currentBaseUrl,
-          theme,
-          showHelp,
+      const [configRes, settingsRes] = await Promise.all([
+        fetch('/api/config', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            provider,
+            model,
+            apiKey: provider === 'ollama' ? '' : apiKey,
+            baseUrl: currentBaseUrl,
+            theme,
+            showHelp,
+          }),
         }),
-      });
-      const data = await res.json();
-      setSaveStatus(data.success ? 'success' : 'error');
+        fetch('/api/settings', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            persona,
+            hideThinkingBlock,
+          }),
+        }),
+      ]);
+      
+      const configData = await configRes.json();
+      const settingsData = await settingsRes.json();
+      
+      if (configData.success && settingsData.success) {
+        setSaveStatus('success');
+      } else {
+        setSaveStatus('error');
+      }
       setTimeout(() => setSaveStatus('idle'), 3000);
     } catch {
       setSaveStatus('error');
@@ -315,6 +352,74 @@ export default function SettingsPage() {
         </div>
       </section>
       
+      {/* 🤖 智能体设定 */}
+      <section className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-200 dark:border-gray-700 mb-4">
+        <h2 className="font-semibold mb-4">🤖 智能体设定</h2>
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm text-gray-500 dark:text-gray-400 mb-1">
+              角色描述
+              {showHelp && (
+                <span className="ml-1 text-gray-300 cursor-help group relative" title="告诉 AI 应该扮演什么角色，影响所有回答的风格">
+                  (?)
+                  <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-1.5 bg-gray-800 text-white text-xs rounded-lg whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 shadow-lg">
+                    告诉 AI 应该扮演什么角色，影响所有回答的风格
+                  </span>
+                </span>
+              )}
+            </label>
+            <textarea
+              value={persona}
+              onChange={e => setPersona(e.target.value)}
+              placeholder="你是一个 Python 专家，擅长后端开发和 API 设计"
+              rows={3}
+              className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-green-500 resize-none"
+            />
+          </div>
+          <div>
+            <p className="text-xs text-gray-500 mb-2">预设模板（点击选择）</p>
+            <div className="flex flex-wrap gap-2">
+              {PERSONA_TEMPLATES.map(t => (
+                <button
+                  key={t.id}
+                  onClick={() => setPersona(`${t.name}，${t.desc}`)}
+                  className={`px-3 py-1.5 rounded-lg text-xs border transition-colors ${
+                    persona === `${t.name}，${t.desc}`
+                      ? 'bg-green-500 text-white border-green-500'
+                      : 'bg-gray-50 dark:bg-gray-700 text-gray-600 dark:text-gray-300 border-gray-200 dark:border-gray-600 hover:border-green-300'
+                  }`}
+                >
+                  {t.name}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* 🧠 思考过程 */}
+      <section className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-200 dark:border-gray-700 mb-4">
+        <h2 className="font-semibold mb-4">🧠 思考过程</h2>
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <span className="text-sm">显示 AI 的"内心想法"</span>
+              <p className="text-xs text-gray-400 mt-0.5">关闭后不再显示思考过程卡片，对话更简洁</p>
+            </div>
+            <button
+              onClick={() => setHideThinkingBlock(!hideThinkingBlock)}
+              className={`w-12 h-6 rounded-full transition-colors relative ${
+                hideThinkingBlock ? 'bg-gray-300 dark:bg-gray-600' : 'bg-green-500'
+              }`}
+            >
+              <div className={`w-5 h-5 bg-white rounded-full shadow absolute top-0.5 transition-transform ${
+                hideThinkingBlock ? 'translate-x-0.5' : 'translate-x-6'
+              }`} />
+            </button>
+          </div>
+        </div>
+      </section>
+      
       {/* 保存按钮（带反馈） */}
       <button
         onClick={handleSave}
@@ -337,11 +442,10 @@ export default function SettingsPage() {
       <div className="mt-6">
         <button
           onClick={() => navigate('/settings/advanced')}
-          className="w-full px-4 py-3 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400 rounded-xl border border-gray-200 dark:border-gray-700 transition-colors flex items-center justify-center gap-2"
+          className="w-full px-4 py-3 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 rounded-xl border border-gray-200 dark:border-gray-700 transition-colors flex items-center justify-center gap-2"
         >
           <span>🔧</span>
           <span>高级设置</span>
-          <span className="text-xs text-gray-400 ml-1">即将上线</span>
         </button>
       </div>
       

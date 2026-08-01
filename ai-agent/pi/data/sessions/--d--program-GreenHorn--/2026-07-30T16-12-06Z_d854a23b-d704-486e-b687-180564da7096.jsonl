@@ -1,0 +1,4 @@
+{"type":"session","version":3,"id":"d854a23b-d704-486e-b687-180564da7096","timestamp":"2026-07-30T16:12:06.860Z","cwd":"D:\\program\\GreenHorn"}
+{"type":"message","id":"58442b99-be8b-4bf8-a940-77fa159f84eb","parentId":null,"timestamp":"2026-07-30T13:57:26.160Z","message":{"role":"user","content":[{"type":"text","text":"帮我写一个 Python 函数，计算斐波那契数列"}],"timestamp":1785419846160}}
+{"type":"message","id":"fa7579d7-6ca6-4586-8f3b-2dfe8d7b5cda","parentId":"58442b99-be8b-4bf8-a940-77fa159f84eb","timestamp":"2026-07-30T16:12:06.860Z","message":{"role":"user","content":[{"type":"text","text":"你好"}],"timestamp":1785427926860}}
+{"type":"session_info","id":"21ce7c15-76b4-4ece-b4fb-73327bec82d9","parentId":"fa7579d7-6ca6-4586-8f3b-2dfe8d7b5cda","timestamp":"2026-07-31T07:04:59.667Z","name":"Python 斐波那契"}

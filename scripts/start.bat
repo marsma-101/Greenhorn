@@ -72,8 +72,10 @@ powershell -Command "$p = Start-Process -NoNewWindow -FilePath \"%NODE_CMD%\" -A
 
 timeout /t 3 /nobreak >nul
 
-:: Open browser
-start "" http://localhost:1001
+:: Open browser with fresh parameter to prevent restoring old tabs
+set FRESH=%TIME::=%
+set FRESH=%FRESH: =0%
+start "" http://localhost:1001/?fresh=%FRESH%
 
 echo.
 echo GreenHorn is running!

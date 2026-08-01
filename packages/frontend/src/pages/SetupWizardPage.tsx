@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useApp } from '../context/AppContext';
+import { IconCheck, IconLink, IconSparkles } from '../components/icons';
 
 const PROVIDERS = [
   { id: 'deepseek', name: 'DeepSeek', desc: '国产最强', badge: '推荐首选', url: 'https://api.deepseek.com/v1', registerUrl: 'https://platform.deepseek.com/api_keys' },
@@ -49,6 +51,7 @@ type SetupStep = 'welcome' | 'install' | 'model' | 'done';
 
 export default function SetupWizardPage() {
   const navigate = useNavigate();
+  const { useSVG } = useApp();
   const [currentStep, setCurrentStep] = useState<SetupStep>('welcome');
   const [installProgress, setInstallProgress] = useState(0);
   const [installMessage, setInstallMessage] = useState('');
@@ -304,19 +307,21 @@ export default function SetupWizardPage() {
         
         {/* 步骤 3：模型配置 */}
         {currentStep === 'model' && (
-          <div className="bg-white dark:bg-gray-800 rounded-2xl p-8 shadow-sm">
-            <div className="text-center mb-8">
-              <div className="text-4xl mb-4">🔗</div>
-              <h2 className="text-xl font-semibold mb-2">连接 AI 模型</h2>
-              <p className="text-gray-500 dark:text-gray-400 text-sm">
+          <div className="paper-card" style={{ padding: '2rem' }}>
+            <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
+              <div style={{ fontSize: '2.5rem', marginBottom: '1rem', display: 'flex', justifyContent: 'center', alignItems: 'center', color: 'var(--c-accent)' }}>
+                {useSVG ? <IconLink size={40} /> : <span>🔗</span>}
+              </div>
+              <h2 style={{ fontSize: '1.25rem', fontWeight: 600, marginBottom: '0.5rem' }}>连接 AI 模型</h2>
+              <p style={{ color: 'var(--c-text-muted)', fontSize: '0.875rem' }}>
                 选择模型供应商，填入 API Key 就能开始对话
               </p>
             </div>
-            
+
             {/* 供应商选择 */}
-            <div className="mb-6">
-              <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-3">选择供应商</h3>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            <div style={{ marginBottom: '1.5rem' }}>
+              <h3 style={{ fontSize: '0.875rem', fontWeight: 500, color: 'var(--c-text-muted)', marginBottom: '0.75rem' }}>选择供应商</h3>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: '0.75rem' }}>
                 {PROVIDERS.map(p => (
                   <button
                     key={p.id}
@@ -327,16 +332,16 @@ export default function SetupWizardPage() {
                       setVerifyStatus('idle');
                       setVerifyMessage('');
                     }}
-                    className={`p-3 rounded-xl text-left border transition-all ${
-                      selectedProvider === p.id
-                        ? 'border-green-500 bg-green-50 dark:bg-green-900/20'
-                        : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
-                    }`}
+                    className="provider-card"
+                    style={{
+                      background: selectedProvider === p.id ? 'var(--c-accent-soft)' : 'var(--c-surface-1)',
+                      borderColor: selectedProvider === p.id ? 'var(--c-accent-dim)' : 'var(--c-border-soft)',
+                    }}
                   >
-                    <div className="font-medium text-sm">{p.name}</div>
-                    <div className="text-xs text-gray-400 mt-0.5">{p.desc}</div>
+                    <div style={{ fontWeight: 500, fontSize: '0.875rem' }}>{p.name}</div>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--c-text-muted)', marginTop: '2px' }}>{p.desc}</div>
                     {p.badge && (
-                      <span className="inline-block mt-1 px-1.5 py-0.5 bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300 text-[10px] rounded">
+                      <span className="chip accent-chip" style={{ marginTop: '4px' }}>
                         {p.badge}
                       </span>
                     )}

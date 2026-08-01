@@ -13,6 +13,8 @@ interface ChatOptions {
   baseUrl: string;
   temperature?: number;
   maxTokens?: number;
+  persona?: string;
+  systemMessage?: string;
 }
 
 /**
@@ -25,10 +27,13 @@ export async function* streamChat(
   history: Array<{ role: string; content: string }>,
   options: ChatOptions,
 ): AsyncIterable<ChatEvent> {
-  const { model, apiKey, baseUrl, temperature = 0.7, maxTokens = 4096 } = options;
+  const { model, apiKey, baseUrl, temperature = 0.7, maxTokens = 4096, systemMessage } = options;
+  
+  // persona 已在 chat.ts 中注入 systemMessage，此处直接使用
+  const systemPrompt = systemMessage || 'You are a helpful AI assistant.';
   
   const messages = [
-    { role: 'system', content: 'You are a helpful AI assistant.' },
+    { role: 'system', content: systemPrompt },
     ...history.map(m => ({ role: m.role, content: m.content })),
     { role: 'user', content: prompt },
   ];

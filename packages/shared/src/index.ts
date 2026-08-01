@@ -20,7 +20,13 @@ export type {
   PiDetectionResult,
 } from './types/config';
 
+export type { PromptTemplate } from './types/prompts';
+
+export type { Skill } from './types/skills';
+
 // Constants
+export type { EngineInfo } from './constants/index';
+
 export {
   APP_NAME,
   APP_VERSION,

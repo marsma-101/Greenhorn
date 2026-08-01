@@ -82,7 +82,9 @@ configRouter.get('/', async (req: Request, res: Response) => {
     // 从 auth.json 和 models.json 中提取当前配置
     const providers = Object.keys(auth);
     const currentProvider = models.defaultProvider || providers[0] || 'deepseek';
-    const currentModel = models.defaultModel || 'deepseek-chat';
+    const rawModel = models.defaultModel || 'deepseek-chat';
+    // Strip provider prefix (PI format: "ollama/qwen3.5:9b" → "qwen3.5:9b")
+    const currentModel = rawModel.includes('/') ? rawModel.split('/').pop()! : rawModel;
     const currentAuth = auth[currentProvider] || {};
     
     res.json({

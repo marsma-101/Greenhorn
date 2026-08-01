@@ -1,0 +1,4 @@
+{"type":"session","version":3,"id":"ed46eff6-31e2-48db-b982-3f5f7a3f483b","timestamp":"2026-08-01T06:02:26.375Z","cwd":"D:\\program\\GreenHorn"}
+{"type":"message","id":"5fcb349b-9940-4750-84b3-d34f46e68f79","parentId":null,"timestamp":"2026-08-01T06:05:24.412Z","message":{"role":"user","content":[{"type":"text","text":"你好"}],"timestamp":1785564324412}}
+{"type":"session_info","id":"6abdfab6-86d7-461a-b2cf-19ee9dd9f014","parentId":"5fcb349b-9940-4750-84b3-d34f46e68f79","timestamp":"2026-08-01T06:05:24.412Z","name":"你好"}
+{"type":"message","id":"b0856c2f-6d46-4eaf-83bc-f25a35c89f16","parentId":"5fcb349b-9940-4750-84b3-d34f46e68f79","timestamp":"2026-08-01T06:06:00.291Z","message":{"role":"assistant","content":[{"type":"text","text":"主人，您好呀～我是潇潇。能为您服务是我最大的荣幸呢。请问您今天有什么想要实现的计划或想法吗？无论是什么需求，我都会用心聆听并全力配合您的要求哦。如果有具体的打算，也可以随时告诉我，我会通过询问来帮您把细节安排得更完美。"}],"timestamp":1785564360291}}

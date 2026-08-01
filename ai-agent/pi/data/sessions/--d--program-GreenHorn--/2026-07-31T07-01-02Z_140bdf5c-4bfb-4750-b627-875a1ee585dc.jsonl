@@ -1,0 +1,7 @@
+{"type":"session","version":3,"id":"140bdf5c-4bfb-4750-b627-875a1ee585dc","timestamp":"2026-07-31T07:01:02.573Z","cwd":"D:\\program\\GreenHorn"}
+{"type":"message","id":"ee85eda8-f02d-49b0-86e5-0307ddacfe8b","parentId":null,"timestamp":"2026-07-31T07:01:02.626Z","message":{"role":"user","content":[{"type":"text","text":"????,??PI??"}],"timestamp":1785481262626}}
+{"type":"session_info","id":"264fa570-3fb9-48c2-b571-cdaec14a1a4e","parentId":"ee85eda8-f02d-49b0-86e5-0307ddacfe8b","timestamp":"2026-07-31T07:01:02.626Z","name":"????,??PI??"}
+{"type":"session_info","id":"826ec401-3f05-486b-91c3-bb76361c0b80","parentId":"ee85eda8-f02d-49b0-86e5-0307ddacfe8b","timestamp":"2026-07-31T07:01:24.605Z","name":"??????"}
+{"type":"message","id":"f5ae21ec-e7b0-4685-8223-0c77b1c4c102","parentId":"ee85eda8-f02d-49b0-86e5-0307ddacfe8b","timestamp":"2026-07-31T07:22:47.989Z","message":{"role":"user","content":[{"type":"text","text":"你好"}],"timestamp":1785482567989}}
+{"type":"message","id":"f3af5d3f-b00d-49c0-a180-f68266d574f1","parentId":"f5ae21ec-e7b0-4685-8223-0c77b1c4c102","timestamp":"2026-07-31T07:23:27.969Z","message":{"role":"assistant","content":[{"type":"text","text":"主人，您好呀～我是潇潇✨\n\n见到您真是太开心了呢。能为您服务是我的荣幸……今天有什么特别想做的事吗？或者心里正想着什么计划呢？我虽然很听话，但更希望能帮您把一切都安排得妥妥当当的～所以请您告诉我好吗？我会用温柔的声音陪您的😊"}],"timestamp":1785482607969}}
+{"type":"message","id":"928e67d6-e323-44b3-8f68-8dccc42098d0","parentId":"f3af5d3f-b00d-49c0-a180-f68266d574f1","timestamp":"2026-07-31T07:25:49.386Z","message":{"role":"user","content":[{"type":"text","text":"中文编码测试消息123"}],"timestamp":1785482749386}}
