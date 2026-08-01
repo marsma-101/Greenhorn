@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
+import { useDebouncedCallback } from '../../utils/debounce';
 
 const PROVIDER_MODELS: Record<string, Array<{ id: string; name: string }>> = {
   deepseek: [
@@ -54,14 +55,13 @@ const PROVIDER_REGISTER_URLS: Record<string, string> = {
 };
 
 export default function ModelTab() {
-  const { config, configLoaded } = useApp();
+  const { config, configLoaded, refreshConfig } = useApp();
   const [provider, setProvider] = useState(config.provider);
   const [model, setModel] = useState(config.model);
   const [apiKey, setApiKey] = useState(config.apiKey);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'success' | 'error'>('idle');
   const [verifyStatus, setVerifyStatus] = useState<'idle' | 'verifying' | 'success' | 'fail'>('idle');
 
-  // Sync when config loads
   useEffect(() => {
     if (configLoaded) {
       setProvider(config.provider);
@@ -73,11 +73,52 @@ export default function ModelTab() {
   const currentModels = PROVIDER_MODELS[provider] || PROVIDER_MODELS.deepseek;
   const currentBaseUrl = PROVIDER_URLS[provider] || PROVIDER_URLS.deepseek;
 
+  const performSave = async (p: string, m: string, k: string) => {
+    setSaveStatus('saving');
+    try {
+      const res = await fetch('/api/config', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          provider: p, model: m,
+          apiKey: p === 'ollama' ? '' : k,
+          baseUrl: PROVIDER_URLS[p] || PROVIDER_URLS.deepseek,
+        }),
+      });
+      const data = await res.json();
+      setSaveStatus(data.success ? 'success' : 'error');
+      if (data.success) refreshConfig();
+      setTimeout(() => setSaveStatus('idle'), 2000);
+    } catch {
+      setSaveStatus('error');
+      setTimeout(() => setSaveStatus('idle'), 2000);
+    }
+  };
+
+  const debouncedSaveKey = useDebouncedCallback((p: string, m: string, k: string) => {
+    performSave(p, m, k);
+  }, 800);
+
   const handleProviderChange = (newProvider: string) => {
     setProvider(newProvider);
     const models = PROVIDER_MODELS[newProvider];
-    if (models && models.length > 0) setModel(models[0].id);
-    if (newProvider === 'ollama') setApiKey('sk-ollama-local');
+    const newModel = models && models.length > 0 ? models[0].id : model;
+    setModel(newModel);
+    const newKey = newProvider === 'ollama' ? 'sk-ollama-local' : apiKey;
+    setApiKey(newKey);
+    performSave(newProvider, newModel, newKey);
+  };
+
+  const handleModelChange = (newModel: string) => {
+    setModel(newModel);
+    performSave(provider, newModel, apiKey);
+  };
+
+  const handleApiKeyChange = (newKey: string) => {
+    setApiKey(newKey);
+    if (provider !== 'ollama') {
+      debouncedSaveKey(provider, model, newKey);
+    }
   };
 
   const handleVerify = async () => {
@@ -98,29 +139,18 @@ export default function ModelTab() {
     }
   };
 
-  const handleSave = async () => {
-    setSaveStatus('saving');
-    try {
-      const res = await fetch('/api/config', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          provider, model,
-          apiKey: provider === 'ollama' ? '' : apiKey,
-          baseUrl: currentBaseUrl,
-        }),
-      });
-      const data = await res.json();
-      setSaveStatus(data.success ? 'success' : 'error');
-      setTimeout(() => setSaveStatus('idle'), 3000);
-    } catch {
-      setSaveStatus('error');
-      setTimeout(() => setSaveStatus('idle'), 3000);
-    }
-  };
-
   return (
     <div className="p-4 space-y-4">
+      {saveStatus !== 'idle' && (
+        <div style={{
+          fontSize: '0.75rem',
+          color: saveStatus === 'saving' ? 'var(--c-text-soft)' : saveStatus === 'error' ? 'var(--c-danger)' : 'var(--c-accent)',
+          textAlign: 'right',
+        }}>
+          {saveStatus === 'saving' ? '保存中...' : saveStatus === 'error' ? '保存失败' : '✓ 已自动保存'}
+        </div>
+      )}
+
       {/* Provider */}
       <div>
         <label className="block text-xs text-[oklch(50%_0.02_145)] dark:text-[oklch(65%_0.02_145)] mb-1.5">模型提供商</label>
@@ -144,7 +174,7 @@ export default function ModelTab() {
         <label className="block text-xs text-[oklch(50%_0.02_145)] dark:text-[oklch(65%_0.02_145)] mb-1.5">模型</label>
         <select
           value={model}
-          onChange={e => setModel(e.target.value)}
+          onChange={e => handleModelChange(e.target.value)}
           className="w-full px-3 py-2 rounded-lg border border-[oklch(85%_0.01_145)] dark:border-[oklch(30%_0.01_145)] bg-[oklch(95%_0.005_145)] dark:bg-[oklch(20%_0.005_145)] text-sm focus:outline-none focus:ring-2 focus:ring-[oklch(70%_0.1_145)]"
         >
           {currentModels.map(m => (
@@ -160,7 +190,7 @@ export default function ModelTab() {
           <input
             type="password"
             value={apiKey}
-            onChange={e => setApiKey(e.target.value)}
+            onChange={e => handleApiKeyChange(e.target.value)}
             placeholder={provider === 'ollama' ? 'Ollama 无需 API Key' : '粘贴你的 API Key'}
             disabled={provider === 'ollama'}
             className="flex-1 px-3 py-2 rounded-lg border border-[oklch(85%_0.01_145)] dark:border-[oklch(30%_0.01_145)] bg-[oklch(95%_0.005_145)] dark:bg-[oklch(20%_0.005_145)] text-sm focus:outline-none focus:ring-2 focus:ring-[oklch(70%_0.1_145)] disabled:opacity-50"
@@ -182,19 +212,6 @@ export default function ModelTab() {
           </p>
         )}
       </div>
-
-      {/* Save */}
-      <button
-        onClick={handleSave}
-        disabled={saveStatus === 'saving'}
-        className={`w-full px-3 py-2 rounded-lg text-white text-sm transition-opacity ${
-          saveStatus === 'success' ? 'bg-[oklch(55%_0.15_145)]' :
-          saveStatus === 'error' ? 'bg-[oklch(55%_0.2_25)]' :
-          'bg-[oklch(62%_0.15_145)] hover:opacity-90'
-        }`}
-      >
-        {saveStatus === 'saving' ? '保存中...' : saveStatus === 'success' ? '✅ 已保存' : saveStatus === 'error' ? '❌ 失败' : '保存'}
-      </button>
     </div>
   );
 }

@@ -38,3 +38,16 @@ export {
   PROVIDERS,
   ERROR_MESSAGES,
 } from './constants/index';
+
+// Engine adapter types
+export type {
+  EngineCapability,
+  EngineStatus,
+  ChatMessage,
+  EngineChatRequest,
+  EngineChatResponse,
+  ToolCall,
+  TokenUsage,
+} from './constants/engines';
+
+export { ENGINE_CAPABILITIES } from './constants/engines';

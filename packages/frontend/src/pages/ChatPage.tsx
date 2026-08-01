@@ -1,7 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import { IconPaperclip, IconBulb, IconLeaf, IconBolt, IconX, IconDocument, IconSparkles } from '../components/icons';
-import type { PromptTemplate, Skill } from '@greenhorn/shared';
+import { ENGINES } from '@greenhorn/shared/constants';
+import type { EngineInfo, PromptTemplate, Skill } from '@greenhorn/shared';
 
 const PROVIDER_NAMES: Record<string, string> = {
   deepseek: 'DeepSeek',
@@ -48,11 +50,16 @@ const SAMPLE_QUESTIONS = [
 ];
 
 export default function ChatPage() {
-  const { config, configLoaded, settings, currentSessionId, setCurrentSessionId, createNewSession, refreshSessions, useSVG } = useApp();
+  const [searchParams] = useSearchParams();
+  const { config, configLoaded, settings, updateSettings, currentSessionId, setCurrentSessionId, createNewSession, refreshSessions, useSVG } = useApp();
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const abortRef = useRef<AbortController | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Read engine from URL param, default to PI
+  const engineId = searchParams.get('engine') || 'pi';
+  const currentEngine: EngineInfo = ENGINES.find(e => e.id === engineId) || ENGINES[0];
 
   const [input, setInput] = useState('');
   const [messages, setMessages] = useState<Array<{ role: string; content: string }>>([]);
@@ -63,7 +70,10 @@ export default function ChatPage() {
   const [typingFast, setTypingFast] = useState(false);
   const [uploadedFiles, setUploadedFiles] = useState<Array<{ name: string; content: string; size: number }>>([]);
   const [selectedModel, setSelectedModel] = useState(config.model);
-  const [selectedPersona, setSelectedPersona] = useState(settings.persona || '');
+  const [selectedPersona, setSelectedPersona] = useState(() => {
+    const enginePersona = settings.enginePersonas?.[engineId];
+    return enginePersona !== undefined ? enginePersona : (settings.persona || '');
+  });
   const [templates, setTemplates] = useState<PromptTemplate[]>([]);
   const [skills, setSkills] = useState<Skill[]>([]);
   const [showTemplatePicker, setShowTemplatePicker] = useState(false);
@@ -103,10 +113,11 @@ export default function ChatPage() {
     if (configLoaded) setSelectedModel(config.model);
   }, [configLoaded, config.model]);
 
-  // Sync persona when settings load
+  // Sync persona when settings load or engine changes
   useEffect(() => {
-    setSelectedPersona(settings.persona || '');
-  }, [settings.persona]);
+    const enginePersona = settings.enginePersonas?.[engineId];
+    setSelectedPersona(enginePersona !== undefined ? enginePersona : (settings.persona || ''));
+  }, [settings.enginePersonas, settings.persona, engineId]);
 
   // Load prompt templates
   useEffect(() => {
@@ -161,30 +172,48 @@ export default function ChatPage() {
     setThinkingContent('');
     setThinkingExpanded(true);
 
-    const chatConfig = config.provider === 'ollama'
-      ? { baseUrl: config.baseUrl || 'http://localhost:11434/v1', model: selectedModel, provider: 'ollama', apiKey: '' }
-      : { baseUrl: config.baseUrl, model: selectedModel, provider: config.provider, apiKey: config.apiKey };
-
     const history = messages
       .filter(m => m.role === 'user' || m.role === 'assistant')
       .slice(-10)
-      .map(m => ({ role: m.role, content: m.content }));
+      .map(m => ({ role: m.role as 'user' | 'assistant', content: m.content }));
+
+    // Build system prompt based on engine
+    let systemPrompt: string | undefined;
+    if (engineId === 'pi') {
+      if (selectedPersona) {
+        systemPrompt = `你是一个${selectedPersona}。`;
+      }
+      if (uploadedFiles.length > 0) {
+        const fileContext = uploadedFiles.map(f => {
+          const truncated = f.content.length > 20000 ? f.content.slice(0, 20000) + '...(truncated)' : f.content;
+          return `用户上传了文件 ${f.name}，内容如下：\n---\n${truncated}\n---`;
+        }).join('\n\n');
+        systemPrompt = (systemPrompt ? systemPrompt + '\n\n' : '') + fileContext;
+      }
+    } else {
+      // Other engines (Hermes, etc.)
+      if (selectedPersona) {
+        systemPrompt = `你是一个${selectedPersona}。`;
+      }
+      if (uploadedFiles.length > 0) {
+        const fileContext = uploadedFiles.map(f => {
+          const truncated = f.content.length > 20000 ? f.content.slice(0, 20000) + '...(truncated)' : f.content;
+          return `用户上传了文件 ${f.name}，内容如下：\n---\n${truncated}\n---`;
+        }).join('\n\n');
+        systemPrompt = (systemPrompt ? systemPrompt + '\n\n' : '') + fileContext;
+      }
+    }
 
     try {
-      const response = await fetch('/api/chat', {
+      const response = await fetch(`/api/engines/${engineId}/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          prompt: userMessage,
-          messages: history,
-          context: {
-            baseUrl: chatConfig.baseUrl,
-            model: chatConfig.model,
-            provider: chatConfig.provider,
-            apiKey: chatConfig.apiKey,
-          },
-          files: uploadedFiles.map(f => ({ name: f.name, content: f.content })),
-          persona: selectedPersona || undefined,
+          messages: [...history, { role: 'user', content: userMessage }],
+          systemPrompt,
+          temperature: 0.7,
+          sessionId: currentSessionId || undefined,
+          stream: true,
         }),
         signal: controller.signal,
       });
@@ -330,6 +359,39 @@ export default function ChatPage() {
 
   return (
     <div className="flex flex-col h-full paper-card m-2 rounded-2xl overflow-hidden">
+      {/* Agent badge header */}
+      <div className="flex items-center justify-between px-4 py-2 border-b border-[oklch(90%_0.01_145)] dark:border-[oklch(25%_0.01_145)] bg-[oklch(99%_0.003_145)] dark:bg-[oklch(20%_0.003_145)] flex-shrink-0">
+        <div className="flex items-center gap-2">
+          <span style={{ fontSize: '1.25rem' }}>{currentEngine.emoji}</span>
+          <div>
+            <div style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--c-text)', lineHeight: 1.2 }}>
+              {currentEngine.name}
+            </div>
+            <div style={{ fontSize: '0.6875rem', color: 'var(--c-text-soft)', lineHeight: 1.2 }}>
+              {currentEngine.description}
+            </div>
+          </div>
+          <button
+            onClick={() => alert('多智能体切换开发中...')}
+            style={{
+              marginLeft: '8px',
+              padding: '2px 8px',
+              borderRadius: 'var(--r-sm)',
+              fontSize: '0.75rem',
+              border: '1px solid var(--c-border-soft)',
+              background: 'transparent',
+              color: 'var(--c-text-soft)',
+              cursor: 'pointer',
+              transition: 'all var(--dur-fast)',
+            }}
+            onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--c-accent-dim)'; e.currentTarget.style.color = 'var(--c-accent)'; }}
+            onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--c-border-soft)'; e.currentTarget.style.color = 'var(--c-text-soft)'; }}
+          >
+            切换 ▾
+          </button>
+        </div>
+      </div>
+
       {/* Messages — paper style */}
       <div className={`flex-1 overflow-y-auto px-6 py-8 ${typingFast ? 'typing-fast' : ''}`}>
         <div className="max-w-3xl mx-auto">
@@ -505,7 +567,13 @@ export default function ChatPage() {
           {/* Persona dropdown */}
           <select
             value={selectedPersona}
-            onChange={e => setSelectedPersona(e.target.value)}
+            onChange={e => {
+              const val = e.target.value;
+              setSelectedPersona(val);
+              updateSettings({
+                enginePersonas: { ...settings.enginePersonas, [engineId]: val },
+              });
+            }}
             className="ui-select"
             style={{ padding: '4px 10px', fontSize: '0.75rem', width: 'auto', cursor: 'pointer' }}
           >

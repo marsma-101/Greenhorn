@@ -15,6 +15,7 @@ import { settingsRouter } from './routes/settings';
 import { templatesRouter } from './routes/templates';
 import { skillsRouter } from './routes/skills';
 import { enginesRouter } from './routes/engines';
+import './adapters';
 import { errorHandler } from './middleware/errorHandler';
 import { initDataPaths } from './services/pi-config';
 import { DEFAULT_PORT } from '@greenhorn/shared/constants';

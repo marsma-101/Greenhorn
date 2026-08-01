@@ -53,3 +53,11 @@ scripts/node/
 
 # Vite temp files
 *.timestamp-*
+
+# 开发环境内部文件
+.workbuddy/
+.codebuddy/
+.trae/
+
+# 引擎安装目录（运行时生成，不进仓库）
+ai-agent/

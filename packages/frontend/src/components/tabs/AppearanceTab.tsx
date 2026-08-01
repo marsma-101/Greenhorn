@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useApp, UIStyle } from '../../context/AppContext';
+import { useDebouncedCallback } from '../../utils/debounce';
 
 const STYLES: { id: UIStyle; name: string; desc: string }[] = [
   { id: 'default', name: '默认', desc: 'GreenHorn 绿色系' },
@@ -12,7 +13,7 @@ export default function AppearanceTab() {
   const [theme, setTheme] = useState<'light' | 'dark' | 'system'>('light');
   const [hideThinking, setHideThinking] = useState(settings.hideThinkingBlock);
   const [style, setStyle] = useState<UIStyle>(uiStyle);
-  const [saved, setSaved] = useState(false);
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
 
   useEffect(() => {
     if (settingsLoaded) {
@@ -22,30 +23,72 @@ export default function AppearanceTab() {
   }, [settingsLoaded, settings.hideThinkingBlock, settings.uiStyle]);
 
   useEffect(() => {
-    // Live preview style
     setUIStyle(style);
   }, [style]);
 
-  const handleSave = async () => {
-    // Save theme to config
-    await fetch('/api/config', {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ theme }),
-    });
-    await updateSettings({ hideThinkingBlock: hideThinking, uiStyle: style });
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
+  const performSave = async (updates: { theme?: string; hideThinkingBlock?: boolean; uiStyle?: UIStyle }) => {
+    setSaveStatus('saving');
+    try {
+      if (updates.theme) {
+        await fetch('/api/config', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ theme: updates.theme }),
+        });
+      }
+      if (updates.hideThinkingBlock !== undefined || updates.uiStyle) {
+        await updateSettings({
+          ...(updates.hideThinkingBlock !== undefined ? { hideThinkingBlock: updates.hideThinkingBlock } : {}),
+          ...(updates.uiStyle ? { uiStyle: updates.uiStyle } : {}),
+        });
+      }
+      setSaveStatus('saved');
+      setTimeout(() => setSaveStatus('idle'), 1500);
+    } catch {
+      setSaveStatus('idle');
+    }
+  };
+
+  const debouncedSaveTheme = useDebouncedCallback((t: string) => {
+    performSave({ theme: t });
+  }, 500);
+
+  const handleThemeChange = (value: 'light' | 'dark' | 'system') => {
+    setTheme(value);
+    debouncedSaveTheme(value);
+  };
+
+  const handleToggleThinking = () => {
+    const next = !hideThinking;
+    setHideThinking(next);
+    performSave({ hideThinkingBlock: next });
+  };
+
+  const handleStyleChange = (value: UIStyle) => {
+    setStyle(value);
+    setUIStyle(value);
+    performSave({ uiStyle: value });
   };
 
   return (
     <div className="p-4 space-y-5">
+      {/* Auto-save indicator */}
+      {saveStatus !== 'idle' && (
+        <div style={{
+          fontSize: '0.75rem',
+          color: saveStatus === 'saving' ? 'var(--c-text-soft)' : 'var(--c-accent)',
+          textAlign: 'right',
+        }}>
+          {saveStatus === 'saving' ? '保存中...' : '✓ 已自动保存'}
+        </div>
+      )}
+
       {/* UI Style */}
       <div>
         <label className="block text-xs mb-2" style={{ color: 'var(--c-text-muted)' }}>界面风格</label>
         <select
           value={style}
-          onChange={e => setStyle(e.target.value as UIStyle)}
+          onChange={e => handleStyleChange(e.target.value as UIStyle)}
           className="ui-select"
         >
           {STYLES.map(s => (
@@ -64,7 +107,7 @@ export default function AppearanceTab() {
             return (
               <button
                 key={t}
-                onClick={() => setTheme(value)}
+                onClick={() => handleThemeChange(value)}
                 style={{
                   flex: 1,
                   padding: '8px 12px',
@@ -93,7 +136,7 @@ export default function AppearanceTab() {
           </p>
         </div>
         <button
-          onClick={() => setHideThinking(!hideThinking)}
+          onClick={handleToggleThinking}
           style={{
             width: '44px',
             height: '24px',
@@ -122,13 +165,6 @@ export default function AppearanceTab() {
           />
         </button>
       </div>
-
-      <button
-        onClick={handleSave}
-        className={`btn-save ${saved ? 'success' : ''}`}
-      >
-        {saved ? '已保存' : '保存'}
-      </button>
     </div>
   );
 }

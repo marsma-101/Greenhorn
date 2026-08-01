@@ -20,6 +20,7 @@ const DEFAULT_SETTINGS = {
     reserveTokens: 4096,
   },
   persona: '',
+  enginePersonas: {} as Record<string, string>,
 };
 
 function readSettings(): typeof DEFAULT_SETTINGS {

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
+import { useDebouncedCallback } from '../../utils/debounce';
 import type { PromptTemplate } from '@greenhorn/shared';
 
 const PERSONA_TEMPLATES = [
@@ -12,15 +13,13 @@ const PERSONA_TEMPLATES = [
 export default function PersonaTab() {
   const { settings, updateSettings, settingsLoaded } = useApp();
   const [persona, setPersona] = useState(settings.persona);
-  const [saved, setSaved] = useState(false);
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
   const [templates, setTemplates] = useState<PromptTemplate[]>([]);
 
-  // Sync when settings load
   useEffect(() => {
     if (settingsLoaded) setPersona(settings.persona);
   }, [settingsLoaded, settings.persona]);
 
-  // Load user prompt templates
   useEffect(() => {
     fetch('/api/templates')
       .then(r => r.json())
@@ -28,23 +27,47 @@ export default function PersonaTab() {
       .catch(() => setTemplates([]));
   }, []);
 
+  const performSave = async (value: string) => {
+    setSaveStatus('saving');
+    try {
+      await updateSettings({ persona: value });
+      setSaveStatus('saved');
+      setTimeout(() => setSaveStatus('idle'), 1500);
+    } catch {
+      setSaveStatus('idle');
+    }
+  };
+
+  const debouncedSave = useDebouncedCallback((value: string) => {
+    performSave(value);
+  }, 500);
+
+  const handlePersonaChange = (value: string) => {
+    setPersona(value);
+    debouncedSave(value);
+  };
+
   const applyTemplate = (t: PromptTemplate) => {
-    setPersona(prev => {
-      const base = (prev || '').trim();
-      return base ? `${base}\n\n${t.content}` : t.content;
-    });
+    const next = (persona || '').trim();
+    const merged = next ? `${next}\n\n${t.content}` : t.content;
+    setPersona(merged);
+    performSave(merged);
   };
 
   const templateCategories = Array.from(new Set(templates.map(t => t.category))).sort();
 
-  const handleSave = async () => {
-    await updateSettings({ persona });
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
-  };
-
   return (
     <div className="p-4 space-y-4">
+      {saveStatus !== 'idle' && (
+        <div style={{
+          fontSize: '0.75rem',
+          color: saveStatus === 'saving' ? 'var(--c-text-soft)' : 'var(--c-accent)',
+          textAlign: 'right',
+        }}>
+          {saveStatus === 'saving' ? '保存中...' : '✓ 已自动保存'}
+        </div>
+      )}
+
       <div>
         <label className="block text-xs text-[oklch(50%_0.02_145)] dark:text-[oklch(65%_0.02_145)] mb-1.5">
           角色描述
@@ -52,7 +75,7 @@ export default function PersonaTab() {
         </label>
         <textarea
           value={persona}
-          onChange={e => setPersona(e.target.value)}
+          onChange={e => handlePersonaChange(e.target.value)}
           placeholder="你是一个 Python 专家，擅长后端开发和 API 设计"
           rows={4}
           className="w-full px-3 py-2 rounded-lg border border-[oklch(85%_0.01_145)] dark:border-[oklch(30%_0.01_145)] bg-[oklch(95%_0.005_145)] dark:bg-[oklch(20%_0.005_145)] text-sm focus:outline-none focus:ring-2 focus:ring-[oklch(70%_0.1_145)] resize-none"
@@ -65,7 +88,7 @@ export default function PersonaTab() {
           {PERSONA_TEMPLATES.map(t => (
             <button
               key={t.id}
-              onClick={() => setPersona(`${t.name}，${t.desc}`)}
+              onClick={() => { const v = `${t.name}，${t.desc}`; setPersona(v); performSave(v); }}
               className={`px-3 py-2 rounded-lg text-xs border transition-colors text-left ${
                 persona === `${t.name}，${t.desc}`
                   ? 'bg-[oklch(85%_0.12_145)] dark:bg-[oklch(30%_0.1_145)] border-[oklch(70%_0.12_145)] text-[oklch(30%_0.12_145)] dark:text-[oklch(80%_0.12_145)]'
@@ -103,15 +126,6 @@ export default function PersonaTab() {
           </div>
         </div>
       )}
-
-      <button
-        onClick={handleSave}
-        className={`w-full px-3 py-2 rounded-lg text-white text-sm transition-opacity ${
-          saved ? 'bg-[oklch(55%_0.15_145)]' : 'bg-[oklch(62%_0.15_145)] hover:opacity-90'
-        }`}
-      >
-        {saved ? '✅ 已保存' : '保存'}
-      </button>
     </div>
   );
 }

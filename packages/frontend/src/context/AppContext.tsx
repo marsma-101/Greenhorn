@@ -24,6 +24,7 @@ interface AppSettings {
   sessionDir: string;
   compaction: { enabled: boolean; reserveTokens: number };
   persona: string;
+  enginePersonas: Record<string, string>;
   uiStyle: UIStyle;
 }
 
@@ -31,6 +32,7 @@ interface AppContextValue {
   // Config
   config: Config;
   configLoaded: boolean;
+  refreshConfig: () => Promise<void>;
   // Settings
   settings: AppSettings;
   settingsLoaded: boolean;
@@ -63,6 +65,7 @@ const DEFAULT_SETTINGS: AppSettings = {
   sessionDir: '~/.pi/agent/sessions',
   compaction: { enabled: false, reserveTokens: 4096 },
   persona: '',
+  enginePersonas: {},
   uiStyle: 'default',
 };
 
@@ -85,15 +88,19 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, [uiStyle]);
 
   // Load config
-  useEffect(() => {
-    fetch('/api/config')
-      .then(res => res.json())
-      .then((data: Config) => {
-        setConfig(data);
-        setConfigLoaded(true);
-      })
-      .catch(() => setConfigLoaded(true));
+  const refreshConfig = useCallback(async () => {
+    try {
+      const res = await fetch('/api/config');
+      const data: Config = await res.json();
+      setConfig(data);
+    } catch {
+      // ignore
+    }
   }, []);
+
+  useEffect(() => {
+    refreshConfig().then(() => setConfigLoaded(true));
+  }, [refreshConfig]);
 
   // Load settings
   useEffect(() => {
@@ -112,6 +119,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
             reserveTokens: data.compaction?.reserveTokens || 4096,
           },
           persona: data.persona || '',
+          enginePersonas: data.enginePersonas || {},
           uiStyle: style,
         });
         setUIStyleState(style);
@@ -226,6 +234,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const value: AppContextValue = {
     config,
     configLoaded,
+    refreshConfig,
     settings,
     settingsLoaded,
     updateSettings,

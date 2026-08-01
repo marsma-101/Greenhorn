@@ -7,13 +7,14 @@ import { IconLeaf, IconSparkles, IconPlus } from '../components/icons';
 import EngineInstallModal from '../components/EngineInstallModal';
 
 interface EngineStatus {
-  id: string;
+  engineId: string;
   installed: boolean;
-  installPath?: string;
-  dataPath?: string;
+  running: boolean;
   version?: string;
-  canDetect: boolean;
-  detectionNote?: string;
+  pid?: number;
+  uptime?: number;
+  capabilities: string[];
+  lastCheck?: string;
 }
 
 export default function HomePage() {
@@ -36,7 +37,7 @@ export default function HomePage() {
         }
         setEngines(prev =>
           prev.map(e => {
-            const status = data.engines.find((s: EngineStatus) => s.id === e.id);
+            const status = data.engines.find((s: EngineStatus) => s.engineId === e.id);
             if (status) {
               return { ...e, status: status.installed ? 'ready' : 'missing' };
             }

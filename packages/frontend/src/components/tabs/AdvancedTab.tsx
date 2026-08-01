@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
+import { useDebouncedCallback } from '../../utils/debounce';
 
 export default function AdvancedTab() {
   const { settings, updateSettings, settingsLoaded } = useApp();
@@ -8,7 +9,7 @@ export default function AdvancedTab() {
   const [compactionEnabled, setCompactionEnabled] = useState(settings.compaction.enabled);
   const [reserveTokens, setReserveTokens] = useState(settings.compaction.reserveTokens);
   const [sessionDir, setSessionDir] = useState(settings.sessionDir);
-  const [saved, setSaved] = useState(false);
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
 
   useEffect(() => {
     if (settingsLoaded) {
@@ -20,25 +21,70 @@ export default function AdvancedTab() {
     }
   }, [settingsLoaded, settings.defaultThinkingLevel, settings.quietStartup, settings.compaction, settings.sessionDir]);
 
-  const handleSave = async () => {
-    await updateSettings({
-      defaultThinkingLevel: thinkingLevel,
-      quietStartup,
-      sessionDir,
-      compaction: { enabled: compactionEnabled, reserveTokens },
-    });
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
+  const performSave = async (updates: Record<string, unknown>) => {
+    setSaveStatus('saving');
+    try {
+      await updateSettings(updates as any);
+      setSaveStatus('saved');
+      setTimeout(() => setSaveStatus('idle'), 1500);
+    } catch {
+      setSaveStatus('idle');
+    }
+  };
+
+  const debouncedSaveSessionDir = useDebouncedCallback((dir: string) => {
+    performSave({ sessionDir: dir });
+  }, 800);
+
+  const debouncedSaveReserveTokens = useDebouncedCallback((tokens: number) => {
+    performSave({ compaction: { enabled: compactionEnabled, reserveTokens: tokens } });
+  }, 500);
+
+  const handleThinkingLevelChange = (level: string) => {
+    setThinkingLevel(level);
+    performSave({ defaultThinkingLevel: level });
+  };
+
+  const handleQuietStartupToggle = () => {
+    const next = !quietStartup;
+    setQuietStartup(next);
+    performSave({ quietStartup: next });
+  };
+
+  const handleCompactionToggle = () => {
+    const next = !compactionEnabled;
+    setCompactionEnabled(next);
+    performSave({ compaction: { enabled: next, reserveTokens } });
+  };
+
+  const handleSessionDirChange = (dir: string) => {
+    setSessionDir(dir);
+    debouncedSaveSessionDir(dir);
+  };
+
+  const handleReserveTokensChange = (tokens: number) => {
+    setReserveTokens(tokens);
+    debouncedSaveReserveTokens(tokens);
   };
 
   return (
     <div className="p-4 space-y-5">
+      {saveStatus !== 'idle' && (
+        <div style={{
+          fontSize: '0.75rem',
+          color: saveStatus === 'saving' ? 'var(--c-text-soft)' : 'var(--c-accent)',
+          textAlign: 'right',
+        }}>
+          {saveStatus === 'saving' ? '保存中...' : '✓ 已自动保存'}
+        </div>
+      )}
+
       {/* Thinking Level */}
       <div>
         <label className="block text-xs text-[oklch(50%_0.02_145)] dark:text-[oklch(65%_0.02_145)] mb-1.5">默认思考级别</label>
         <select
           value={thinkingLevel}
-          onChange={e => setThinkingLevel(e.target.value)}
+          onChange={e => handleThinkingLevelChange(e.target.value)}
           className="w-full px-3 py-2 rounded-lg border border-[oklch(85%_0.01_145)] dark:border-[oklch(30%_0.01_145)] bg-[oklch(95%_0.005_145)] dark:bg-[oklch(20%_0.005_145)] text-sm focus:outline-none focus:ring-2 focus:ring-[oklch(70%_0.1_145)]"
         >
           <option value="off">关闭</option>
@@ -55,7 +101,7 @@ export default function AdvancedTab() {
           <p className="text-xs text-[oklch(55%_0.015_145)] mt-0.5">启动时不自动打开浏览器</p>
         </div>
         <button
-          onClick={() => setQuietStartup(!quietStartup)}
+          onClick={handleQuietStartupToggle}
           className={`w-11 h-6 rounded-full transition-colors relative flex-shrink-0 ${
             quietStartup ? 'bg-[oklch(62%_0.15_145)]' : 'bg-[oklch(75%_0.01_145)]'
           }`}
@@ -72,7 +118,7 @@ export default function AdvancedTab() {
         <input
           type="text"
           value={sessionDir}
-          onChange={e => setSessionDir(e.target.value)}
+          onChange={e => handleSessionDirChange(e.target.value)}
           className="w-full px-3 py-2 rounded-lg border border-[oklch(85%_0.01_145)] dark:border-[oklch(30%_0.01_145)] bg-[oklch(95%_0.005_145)] dark:bg-[oklch(20%_0.005_145)] text-sm font-mono focus:outline-none focus:ring-2 focus:ring-[oklch(70%_0.1_145)]"
         />
       </div>
@@ -85,7 +131,7 @@ export default function AdvancedTab() {
             <p className="text-xs text-[oklch(55%_0.015_145)] mt-0.5">长对话自动压缩历史</p>
           </div>
           <button
-            onClick={() => setCompactionEnabled(!compactionEnabled)}
+            onClick={handleCompactionToggle}
             className={`w-11 h-6 rounded-full transition-colors relative flex-shrink-0 ${
               compactionEnabled ? 'bg-[oklch(62%_0.15_145)]' : 'bg-[oklch(75%_0.01_145)]'
             }`}
@@ -101,7 +147,7 @@ export default function AdvancedTab() {
             <input
               type="number"
               value={reserveTokens}
-              onChange={e => setReserveTokens(Number(e.target.value))}
+              onChange={e => handleReserveTokensChange(Number(e.target.value))}
               min={512}
               step={512}
               className="w-full px-3 py-2 rounded-lg border border-[oklch(85%_0.01_145)] dark:border-[oklch(30%_0.01_145)] bg-[oklch(95%_0.005_145)] dark:bg-[oklch(20%_0.005_145)] text-sm focus:outline-none focus:ring-2 focus:ring-[oklch(70%_0.1_145)]"
@@ -109,15 +155,6 @@ export default function AdvancedTab() {
           </div>
         )}
       </div>
-
-      <button
-        onClick={handleSave}
-        className={`w-full px-3 py-2 rounded-lg text-white text-sm transition-opacity ${
-          saved ? 'bg-[oklch(55%_0.15_145)]' : 'bg-[oklch(62%_0.15_145)] hover:opacity-90'
-        }`}
-      >
-        {saved ? '✅ 已保存' : '保存'}
-      </button>
     </div>
   );
 }
