@@ -110,7 +110,6 @@ export class HermesAdapter extends EngineAdapter {
         timeout: 300000,
         env: { ...process.env },
         shell: false,
-        windowsVerbatimArguments: true,
       });
 
       let output = '';

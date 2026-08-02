@@ -270,13 +270,13 @@
 
     <div class="download-section">
       <a href="https://github.com/marsma-101/Greenhorn/archive/refs/heads/main.zip"
+         download="greenhorn.zip"
          class="btn-primary"
-         id="zipBtn"
-         onclick="tryDownload(event)">
+         id="zipBtn">
         <span class="icon">⬇️</span>
         下载 GreenHorn 压缩包
       </a>
-      <p class="download-hint">解压后双击 start.bat 即可自动安装运行</p>
+      <p class="download-hint">点击后请留意浏览器下载提示（Ctrl+J 查看下载进度）</p>
     </div>
 
     <div class="steps">
@@ -303,35 +303,22 @@
       </div>
     </div>
 
-    <div class="mirror-list">
-      <div class="mirror-title">🌐 镜像源（下载失败时自动切换）</div>
-      <div class="mirror-item">
-        <span class="source">GitHub 直连</span>
-        <span class="status active">推荐</span>
-      </div>
-      <div class="mirror-item">
-        <span class="source">gh-proxy.com</span>
-        <span class="status">镜像1</span>
-      </div>
-      <div class="mirror-item">
-        <span class="source">ghfast.top</span>
-        <span class="status">镜像2</span>
-      </div>
+    <div style="text-align: center; margin: 16px 0 8px; font-size: 14px; color: var(--c-text-muted);">
+      GitHub 直连太慢？试试镜像：
     </div>
-
-    <div class="progress" id="progress">
-      <div class="progress-text" id="progressText">正在下载 greenhorn.zip...</div>
-      <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
-      <div class="progress-msg" id="progressMsg">如下载失败，将自动切换镜像源</div>
-    </div>
-
-    <div class="success" id="success">
-      <div class="success-icon">🎉</div>
-      <div class="success-title">下载完成！</div>
-      <div class="success-text">
-        greenhorn.zip 已下载<br>
-        解压后双击 start.bat 即可启动 GreenHorn
-      </div>
+    <div style="display: flex; gap: 10px; margin-bottom: 20px;">
+      <a href="https://ghproxy.com/https://github.com/marsma-101/Greenhorn/archive/refs/heads/main.zip"
+         download="greenhorn.zip"
+         class="btn btn-secondary"
+         style="flex: 1; text-align: center; justify-content: center; display: flex;">
+        镜像1（gh-proxy）
+      </a>
+      <a href="https://ghfast.top/https://github.com/marsma-101/Greenhorn/archive/refs/heads/main.zip"
+         download="greenhorn.zip"
+         class="btn btn-secondary"
+         style="flex: 1; text-align: center; justify-content: center; display: flex;">
+        镜像2（ghfast）
+      </a>
     </div>
 
     <div class="footer">
@@ -341,53 +328,8 @@
   </div>
 
   <script>
-    const DOWNLOAD_URLS = [
-      'https://github.com/marsma-101/Greenhorn/archive/refs/heads/main.zip',
-      'https://ghproxy.com/https://github.com/marsma-101/Greenhorn/archive/refs/heads/main.zip',
-      'https://ghfast.top/https://github.com/marsma-101/Greenhorn/archive/refs/heads/main.zip'
-    ];
-
-    let currentIndex = 0;
-
-    function tryDownload(e) {
-      e.preventDefault();
-      const btn = document.getElementById('zipBtn');
-      btn.style.display = 'none';
-
-      const progress = document.getElementById('progress');
-      const progressFill = document.getElementById('progressFill');
-      const progressText = document.getElementById('progressText');
-      const progressMsg = document.getElementById('progressMsg');
-
-      progress.classList.add('show');
-
-      progressText.textContent = '正在下载 greenhorn.zip...';
-      progressMsg.textContent = '下载源：GitHub 直连';
-
-      simulateProgress(() => {
-        const success = document.getElementById('success');
-        progress.style.display = 'none';
-        success.classList.add('show');
-      });
-    }
-
-    function simulateProgress(done) {
-      const progressFill = document.getElementById('progressFill');
-      let val = 0;
-      const timer = setInterval(() => {
-        val += Math.random() * 12 + 3;
-        if (val >= 95) val = 95;
-        progressFill.style.width = val + '%';
-        if (val >= 80) {
-          document.getElementById('progressMsg').textContent = '即将完成...';
-        }
-      }, 180);
-      setTimeout(() => {
-        clearInterval(timer);
-        progressFill.style.width = '100%';
-        setTimeout(done, 300);
-      }, 4000);
-    }
+    // 纯展示页面，下载通过 <a download> 原生行为完成
+    // 无需 JS 干预，无假进度条
   </script>
 </body>
 </html>
