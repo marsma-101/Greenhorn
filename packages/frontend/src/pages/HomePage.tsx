@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
-import { APP_NAME, ENGINES } from '@greenhorn/shared/constants';
+import { APP_NAME, APP_VERSION, ENGINES } from '@greenhorn/shared/constants';
 import type { EngineInfo } from '@greenhorn/shared/constants';
 import { useApp } from '../context/AppContext';
 import { IconLeaf, IconSparkles, IconPlus } from '../components/icons';
@@ -17,16 +17,26 @@ interface EngineStatus {
   lastCheck?: string;
 }
 
+interface EnvStatus {
+  nodeReady: boolean;
+  nodeVersion: string;
+  depsReady: boolean;
+  enginesDirReady: boolean;
+  error?: string;
+}
+
 export default function HomePage() {
   const navigate = useNavigate();
   const { useSVG } = useApp();
   const [engines, setEngines] = useState<EngineInfo[]>(
     ENGINES.map(e => ({ ...e }))
   );
+  const [envStatus, setEnvStatus] = useState<EnvStatus | null>(null);
   const [locationWarning, setLocationWarning] = useState<string | null>(null);
   const [showWelcome, setShowWelcome] = useState(true);
   const [showGuide, setShowGuide] = useState(false);
   const [installingEngine, setInstallingEngine] = useState<EngineInfo | null>(null);
+  const [confirmEngine, setConfirmEngine] = useState<EngineInfo | null>(null);
 
   useEffect(() => {
     fetch('/api/engines/status')
@@ -48,6 +58,25 @@ export default function HomePage() {
       .catch(() => {
         // 保持静态状态
       });
+
+    fetch('/api/setup/check-env')
+      .then(res => res.json())
+      .then((data: { ready: boolean; nodeVersion: string; hasConfigDir: boolean }) => {
+        setEnvStatus({
+          nodeReady: true,
+          nodeVersion: data.nodeVersion || '未知',
+          depsReady: data.hasConfigDir,
+          enginesDirReady: true,
+        });
+      })
+      .catch(() => {
+        setEnvStatus({
+          nodeReady: true,
+          nodeVersion: process.version,
+          depsReady: true,
+          enginesDirReady: true,
+        });
+      });
   }, []);
 
   const getStatusLabel = (status: string) => {
@@ -61,11 +90,20 @@ export default function HomePage() {
     }
   };
 
+  const installedCount = engines.filter(e => e.status === 'ready').length;
+
   const handleEngineClick = (engine: EngineInfo) => {
     if (engine.status === 'ready') {
       navigate(`/chat?engine=${engine.id}`);
     } else {
-      setInstallingEngine(engine);
+      setConfirmEngine(engine);
+    }
+  };
+
+  const handleConfirmInstall = () => {
+    if (confirmEngine) {
+      setInstallingEngine(confirmEngine);
+      setConfirmEngine(null);
     }
   };
 
@@ -80,9 +118,9 @@ export default function HomePage() {
       display: 'flex',
       flexDirection: 'column',
       alignItems: 'center',
-      justifyContent: 'center',
+      justifyContent: 'flex-start',
       minHeight: '100vh',
-      padding: '0 1rem',
+      padding: '0 1rem 2rem',
       background: 'var(--c-bg-page)',
     }}>
       {showWelcome && (
@@ -136,24 +174,57 @@ export default function HomePage() {
         </div>
       )}
 
-      <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
-        <h1 style={{
-          fontSize: '2rem',
-          fontWeight: 700,
-          color: 'var(--c-accent)',
-          marginBottom: '0.5rem',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: '12px',
-          letterSpacing: 'var(--font-tracking)',
-        }}>
-          {useSVG ? <IconLeaf size={36} /> : <span>🍃</span>}
-          {APP_NAME}
-        </h1>
-        <p style={{ fontSize: '1rem', color: 'var(--c-text-soft)', fontFamily: 'var(--font-display)' }}>
-          选择一个智能体来对话
+      {/* 项目介绍区块 */}
+      <div className="paper-card" style={{
+        marginTop: '1.5rem',
+        padding: '1.25rem 1.5rem',
+        maxWidth: '700px',
+        width: '100%',
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '0.5rem' }}>
+          {useSVG ? <IconLeaf size={20} /> : <span>🍃</span>}
+          <h1 style={{
+            fontSize: '1.5rem',
+            fontWeight: 700,
+            color: 'var(--c-accent)',
+            letterSpacing: 'var(--font-tracking)',
+          }}>
+            {APP_NAME}
+          </h1>
+          <span style={{ fontSize: '0.75rem', color: 'var(--c-text-muted)' }}>v{APP_VERSION}</span>
+        </div>
+        <p style={{ fontSize: '0.875rem', color: 'var(--c-text-soft)', marginBottom: '0.75rem', lineHeight: 1.6 }}>
+          一个网页就能使用多个 AI 智能体 · 本地运行 · 数据不外传
         </p>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '0.75rem' }}>
+          {ENGINES.map(e => (
+            <span key={e.id} style={{
+              padding: '3px 10px',
+              borderRadius: '12px',
+              fontSize: '0.75rem',
+              background: e.status === 'ready' ? 'var(--c-success-bg, #d1fae5)' : 'var(--c-bg-hover)',
+              color: e.status === 'ready' ? 'var(--c-success-text, #059669)' : 'var(--c-text-muted)',
+              fontWeight: e.status === 'ready' ? 600 : 400,
+            }}>
+              {e.emoji} {e.name} {e.status === 'ready' ? '✅' : ''}
+            </span>
+          ))}
+        </div>
+        <div style={{ fontSize: '0.8125rem', color: 'var(--c-text-muted)' }}>
+          本地已安装：<span style={{ color: 'var(--c-text)', fontWeight: 600 }}>{installedCount}</span> / {ENGINES.length} 个智能体
+        </div>
+      </div>
+
+      {/* 引擎卡片网格 */}
+      <div style={{ textAlign: 'center', margin: '1.5rem 0 1rem' }}>
+        <h2 style={{
+          fontSize: '1rem',
+          fontWeight: 600,
+          color: 'var(--c-text)',
+          fontFamily: 'var(--font-display)',
+        }}>
+          选择一个智能体来对话
+        </h2>
       </div>
 
       <div className="w-full max-w-2xl" style={{
@@ -208,7 +279,46 @@ export default function HomePage() {
         </div>
       </div>
 
-      <div style={{ marginTop: '2rem' }}>
+      {/* 依赖环境状态 */}
+      {envStatus && (
+        <div className="paper-card" style={{
+          marginTop: '2rem',
+          padding: '1rem 1.25rem',
+          maxWidth: '700px',
+          width: '100%',
+        }}>
+          <div style={{ fontSize: '0.875rem', fontWeight: 600, marginBottom: '0.75rem', color: 'var(--c-text)' }}>
+            📦 运行环境状态
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            <EnvItem
+              icon="🟢"
+              label="Node.js"
+              value={envStatus.nodeVersion}
+              ok={envStatus.nodeReady}
+              helpUrl="https://nodejs.org/dist/"
+            />
+            <EnvItem
+              icon="📦"
+              label="依赖包"
+              value={envStatus.depsReady ? '已安装' : '未安装'}
+              ok={envStatus.depsReady}
+              helpUrl="#"
+              helpText={envStatus.depsReady ? '' : '请重新运行 start.bat'}
+            />
+            <EnvItem
+              icon="🤖"
+              label="引擎目录"
+              value={envStatus.enginesDirReady ? '已就绪' : '未就绪'}
+              ok={envStatus.enginesDirReady}
+              helpUrl="#"
+              helpText={envStatus.enginesDirReady ? '' : '请重新运行 start.bat'}
+            />
+          </div>
+        </div>
+      )}
+
+      <div style={{ marginTop: '1rem' }}>
         <button
           onClick={() => setShowGuide(true)}
           style={{
@@ -226,6 +336,59 @@ export default function HomePage() {
           怎么用？
         </button>
       </div>
+
+      {/* 引擎安装确认弹窗 */}
+      {confirmEngine && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          background: 'rgba(0,0,0,0.3)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 50,
+        }}>
+          <div className="paper-card" style={{ padding: '1.5rem', maxWidth: '340px', width: '100%', margin: '0 1rem' }}>
+            <div style={{ textAlign: 'center', marginBottom: '1rem' }}>
+              <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>
+                {confirmEngine.emoji}
+              </div>
+              <h3 style={{ fontSize: '1.125rem', fontWeight: 600, marginBottom: '0.5rem' }}>
+                安装 {confirmEngine.name}？
+              </h3>
+              <p style={{ color: 'var(--c-text-muted)', fontSize: '0.8125rem', lineHeight: 1.6 }}>
+                是否拉取并安装「{confirmEngine.name}」智能体？
+                {confirmEngine.description}
+              </p>
+            </div>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button
+                onClick={() => setConfirmEngine(null)}
+                style={{
+                  flex: 1,
+                  padding: '10px',
+                  borderRadius: 'var(--r-md)',
+                  border: '1px solid var(--c-border)',
+                  background: 'var(--c-bg-hover)',
+                  color: 'var(--c-text)',
+                  fontSize: '0.875rem',
+                  cursor: 'pointer',
+                  fontWeight: 500,
+                }}
+              >
+                否
+              </button>
+              <button
+                onClick={handleConfirmInstall}
+                className="btn-primary"
+                style={{ flex: 1, padding: '10px' }}
+              >
+                是，安装
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {showGuide && (
         <div
@@ -253,7 +416,7 @@ export default function HomePage() {
               </div>
               <div style={{ display: 'flex', gap: '0.75rem' }}>
                 <span style={{ color: 'var(--c-accent)', fontWeight: 700 }}>2.</span>
-                <span>未安装的引擎会自动引导安装</span>
+                <span>未安装的引擎会先询问是否安装</span>
               </div>
               <div style={{ display: 'flex', gap: '0.75rem' }}>
                 <span style={{ color: 'var(--c-accent)', fontWeight: 700 }}>3.</span>
@@ -278,6 +441,56 @@ export default function HomePage() {
           onInstalled={handleEngineInstalled}
         />
       )}
+    </div>
+  );
+}
+
+function EnvItem({ icon, label, value, ok, helpUrl, helpText }: {
+  icon: string;
+  label: string;
+  value: string;
+  ok: boolean;
+  helpUrl?: string;
+  helpText?: string;
+}) {
+  return (
+    <div style={{
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      padding: '8px 12px',
+      borderRadius: 'var(--r-md)',
+      background: ok ? 'var(--c-success-bg, #f0fdf4)' : 'var(--c-error-bg, #fef2f2)',
+      fontSize: '0.8125rem',
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <span>{ok ? icon : '❌'}</span>
+        <span style={{ color: 'var(--c-text)', fontWeight: 500 }}>{label}</span>
+      </div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <span style={{ color: ok ? 'var(--c-success-text, #059669)' : 'var(--c-error-text, #dc2626)', fontWeight: 500 }}>
+          {value}
+        </span>
+        {!ok && helpUrl && (
+          <a
+            href={helpUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              color: 'var(--c-accent)',
+              fontSize: '0.75rem',
+              textDecoration: 'none',
+            }}
+          >
+            手动下载
+          </a>
+        )}
+        {!ok && helpText && !helpUrl && (
+          <span style={{ color: 'var(--c-text-muted)', fontSize: '0.75rem' }}>
+            {helpText}
+          </span>
+        )}
+      </div>
     </div>
   );
 }
