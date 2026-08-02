@@ -4,10 +4,9 @@ import type {
   EngineChatRequest,
   EngineChatResponse,
 } from '@greenhorn/shared';
-import { spawn, exec } from 'child_process';
+import { spawn } from 'child_process';
 import path from 'path';
 import fs from 'fs';
-import os from 'os';
 import { getAiAgentRoot } from '../services/ai-agent-manager';
 
 const HERMES_DEFAULT_PORT = 9119;
@@ -106,62 +105,27 @@ export class HermesAdapter extends EngineAdapter {
     return new Promise((resolve, reject) => {
       const args = ['-z', prompt];
 
-      // 为 oneshot 创建独立可写环境，避免日志锁文件冲突
-      const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'hermes-oneshot-'));
-
       const child = spawn(hermesCli, args, {
         cwd: path.dirname(hermesCli),
         timeout: 300000,
-        env: {
-          ...process.env,
-          HERMES_HOME: tempDir,
-          HERMES_DATA_DIR: tempDir,
-          HERMES_LOG_DIR: path.join(tempDir, 'logs'),
-          HOME: tempDir,
-          APP_DATA: tempDir,
-        },
         shell: false,
         windowsVerbatimArguments: false,
       });
 
       let output = '';
       let stderr = '';
-      let lockError = false;
 
       child.stdout?.on('data', (data: Buffer) => {
         output += data.toString('utf-8');
       });
 
       child.stderr?.on('data', (data: Buffer) => {
-        const chunk = data.toString('utf-8');
-        stderr += chunk;
-        if (chunk.includes('Permission denied') || chunk.includes('__agent.lock')) {
-          lockError = true;
-        }
+        stderr += data.toString('utf-8');
       });
 
-      child.on('close', async (code: number) => {
-        // 清理临时目录
-        try {
-          fs.rmSync(tempDir, { recursive: true, force: true });
-        } catch {}
-
+      child.on('close', (code: number) => {
         if (code === 0) {
           resolve(output.trim() || 'Hermes processed your request.');
-        } else if (lockError) {
-          // 锁文件冲突：尝试终止占用的 Hermes 网关进程后重试
-          try {
-            await new Promise<void>((innerResolve) => {
-              exec('taskkill /f /im hermes.exe 2>nul', () => innerResolve());
-            });
-            // 等待进程退出
-            await new Promise(r => setTimeout(r, 500));
-            // 重试一次
-            const result = await this.runHermesOneshot(hermesCli, prompt);
-            resolve(result);
-          } catch (retryErr: any) {
-            reject(new Error(`Hermes 锁文件冲突，重试失败: ${retryErr.message || retryErr}`));
-          }
         } else {
           const errMsg = stderr.trim() || output.trim() || `Hermes exited with code ${code}`;
           reject(new Error(errMsg));
