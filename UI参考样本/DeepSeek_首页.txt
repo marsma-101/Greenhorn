@@ -1,2 +1,0 @@
-- heading "403 ERROR" [level=1, ref=e1]
-- heading "The request could not be satisfied." [level=2, ref=e2]

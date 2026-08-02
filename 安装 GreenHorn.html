@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>安装 GreenHorn</title>
+  <title>GreenHorn - 一键安装</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
@@ -20,8 +20,8 @@
       background: #fff;
       border-radius: 20px;
       box-shadow: 0 20px 60px rgba(0,0,0,0.2);
-      padding: 40px;
-      max-width: 520px;
+      padding: 48px 40px;
+      max-width: 560px;
       width: 100%;
     }
     .header {
@@ -29,200 +29,218 @@
       margin-bottom: 32px;
     }
     .logo {
-      font-size: 48px;
+      font-size: 56px;
       margin-bottom: 12px;
     }
     .title {
-      font-size: 28px;
-      font-weight: 700;
+      font-size: 32px;
+      font-weight: 800;
       color: #1a1a2e;
-      margin-bottom: 8px;
+      margin-bottom: 12px;
     }
     .subtitle {
+      font-size: 16px;
+      color: #6b7280;
+      line-height: 1.7;
+    }
+    .hero-banner {
+      background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+      border: 2px solid #f59e0b;
+      border-radius: 16px;
+      padding: 20px 24px;
+      margin-bottom: 32px;
+      text-align: center;
+    }
+    .hero-banner .highlight {
       font-size: 15px;
-      color: #6b7280;
-      line-height: 1.6;
-    }
-    .warning {
-      background: #fef3c7;
-      border: 1px solid #fbbf24;
-      border-radius: 12px;
-      padding: 12px 16px;
-      margin-bottom: 24px;
-      font-size: 13px;
+      font-weight: 600;
       color: #92400e;
-      line-height: 1.6;
+      line-height: 1.8;
     }
-    .warning strong { display: block; margin-bottom: 4px; }
-    .tabs {
-      display: flex;
-      gap: 8px;
-      margin-bottom: 24px;
-      border-bottom: 2px solid #f3f4f6;
+    .hero-banner .highlight .big {
+      font-size: 17px;
+      color: #78350f;
     }
-    .tab {
-      flex: 1;
-      padding: 12px 16px;
-      border: none;
-      background: none;
-      font-size: 14px;
-      font-weight: 500;
-      color: #6b7280;
-      cursor: pointer;
-      border-bottom: 2px solid transparent;
-      margin-bottom: -2px;
-      transition: all 0.2s;
+    .steps {
+      margin-bottom: 32px;
     }
-    .tab:hover { color: #374151; }
-    .tab.active {
-      color: #667eea;
-      border-bottom-color: #667eea;
-    }
-    .panel { display: none; }
-    .panel.active { display: block; }
     .step {
       display: flex;
-      gap: 12px;
-      margin-bottom: 16px;
-      padding: 12px 16px;
+      gap: 16px;
+      margin-bottom: 14px;
+      padding: 14px 18px;
       background: #f9fafb;
-      border-radius: 12px;
+      border-radius: 14px;
       border: 1px solid #f3f4f6;
+      transition: all 0.2s;
+    }
+    .step:hover {
+      background: #f3f4f6;
+      border-color: #e5e7eb;
     }
     .step-num {
       flex-shrink: 0;
-      width: 28px;
-      height: 28px;
-      background: #667eea;
+      width: 32px;
+      height: 32px;
+      background: linear-gradient(135deg, #667eea, #764ba2);
       color: white;
       border-radius: 50%;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 13px;
-      font-weight: 600;
+      font-size: 14px;
+      font-weight: 700;
     }
     .step-content {
       flex: 1;
-      font-size: 14px;
+      font-size: 15px;
       line-height: 1.6;
       color: #374151;
+      padding-top: 3px;
     }
-    .step-content strong { color: #1a1a2e; }
-    .btn {
-      display: inline-flex;
+    .step-content strong { color: #1a1a2e; font-weight: 600; }
+    .step-content .sub {
+      display: block;
+      font-size: 13px;
+      color: #9ca3af;
+      margin-top: 2px;
+    }
+    .download-section {
+      margin-bottom: 28px;
+    }
+    .btn-primary {
+      display: flex;
       align-items: center;
-      gap: 8px;
-      padding: 12px 24px;
+      justify-content: center;
+      gap: 12px;
+      width: 100%;
+      padding: 20px 32px;
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      color: white;
       border: none;
-      border-radius: 10px;
-      font-size: 15px;
-      font-weight: 600;
+      border-radius: 14px;
+      font-size: 18px;
+      font-weight: 700;
       cursor: pointer;
       transition: all 0.2s;
       text-decoration: none;
+      box-shadow: 0 8px 24px rgba(102,126,234,0.4);
     }
-    .btn-primary {
-      background: linear-gradient(135deg, #667eea, #764ba2);
-      color: white;
-      width: 100%;
-      justify-content: center;
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 12px 32px rgba(102,126,234,0.5);
     }
-    .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(102,126,234,0.4); }
-    .btn-secondary {
-      background: #f3f4f6;
-      color: #374151;
-      flex: 1;
-      justify-content: center;
+    .btn-primary:active {
+      transform: translateY(0);
     }
-    .btn-secondary:hover { background: #e5e7eb; }
-    .code-block {
-      background: #1f2937;
-      color: #e5e7eb;
-      padding: 16px;
-      border-radius: 10px;
-      font-family: "Cascadia Code", "Fira Code", "Consolas", monospace;
-      font-size: 13px;
-      line-height: 1.6;
-      overflow-x: auto;
-      position: relative;
-      margin-bottom: 12px;
+    .btn-primary .icon { font-size: 22px; }
+    .download-hint {
+      text-align: center;
+      margin-top: 12px;
+      font-size: 14px;
+      color: #6b7280;
     }
-    .copy-btn {
-      position: absolute;
-      top: 8px;
-      right: 8px;
-      background: #374151;
-      color: #e5e7eb;
-      border: none;
-      padding: 4px 10px;
-      border-radius: 6px;
-      font-size: 12px;
-      cursor: pointer;
-      transition: background 0.2s;
-    }
-    .copy-btn:hover { background: #4b5563; }
-    .copy-btn.copied { background: #10b981; }
     .mirror-list {
-      margin: 12px 0;
-      padding: 12px;
       background: #f9fafb;
-      border-radius: 10px;
+      border-radius: 12px;
+      padding: 16px 20px;
+      margin-bottom: 24px;
+    }
+    .mirror-title {
       font-size: 13px;
+      font-weight: 600;
+      color: #4b5563;
+      margin-bottom: 10px;
     }
     .mirror-item {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 6px 0;
-      color: #4b5563;
+      padding: 8px 0;
+      border-bottom: 1px solid #e5e7eb;
     }
-    .mirror-item .source { font-weight: 500; }
-    .mirror-item .status { font-size: 12px; color: #9ca3af; }
-    .mirror-item .status.active { color: #10b981; }
+    .mirror-item:last-child { border-bottom: none; }
+    .mirror-item .source { font-size: 14px; color: #374151; font-weight: 500; }
+    .mirror-item .status {
+      font-size: 12px;
+      color: #9ca3af;
+      padding: 2px 8px;
+      border-radius: 10px;
+      background: #f3f4f6;
+    }
+    .mirror-item .status.active {
+      color: #059669;
+      background: #d1fae5;
+      font-weight: 600;
+    }
     .progress {
       display: none;
       margin-top: 16px;
-      padding: 16px;
+      padding: 20px;
       background: #eff6ff;
       border: 1px solid #bfdbfe;
-      border-radius: 10px;
+      border-radius: 14px;
+      text-align: center;
     }
     .progress.show { display: block; }
-    .progress-text { font-size: 14px; color: #1e40af; margin-bottom: 8px; }
+    .progress-text { font-size: 15px; color: #1e40af; margin-bottom: 12px; font-weight: 500; }
     .progress-bar {
-      height: 8px;
+      height: 10px;
       background: #dbeafe;
-      border-radius: 4px;
+      border-radius: 5px;
       overflow: hidden;
+      max-width: 320px;
+      margin: 0 auto;
     }
     .progress-fill {
       height: 100%;
       background: linear-gradient(90deg, #3b82f6, #667eea);
-      border-radius: 4px;
+      border-radius: 5px;
       width: 0;
       transition: width 0.3s;
+    }
+    .progress-msg {
+      margin-top: 12px;
+      font-size: 13px;
+      color: #3b82f6;
     }
     .success {
       display: none;
       text-align: center;
       padding: 24px;
       background: #d1fae5;
-      border-radius: 12px;
+      border-radius: 14px;
       margin-top: 16px;
     }
     .success.show { display: block; }
     .success-icon { font-size: 48px; margin-bottom: 12px; }
-    .success-title { font-size: 18px; font-weight: 600; color: #065f46; margin-bottom: 8px; }
-    .success-text { font-size: 14px; color: #047857; line-height: 1.6; }
+    .success-title { font-size: 20px; font-weight: 700; color: #065f46; margin-bottom: 8px; }
+    .success-text { font-size: 15px; color: #047857; line-height: 1.7; }
+    .features {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 28px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    .feature-tag {
+      background: #f3f4f6;
+      color: #4b5563;
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 500;
+    }
+    .feature-tag.highlight {
+      background: #eff6ff;
+      color: #1d4ed8;
+    }
     .footer {
       text-align: center;
-      margin-top: 24px;
       padding-top: 24px;
       border-top: 1px solid #f3f4f6;
-      font-size: 13px;
-      color: #9ca3af;
     }
+    .footer p { font-size: 13px; color: #9ca3af; line-height: 1.8; }
     .footer a { color: #667eea; text-decoration: none; }
     .footer a:hover { text-decoration: underline; }
   </style>
@@ -231,267 +249,145 @@
   <div class="container">
     <div class="header">
       <div class="logo">🍃</div>
-      <h1 class="title">安装 GreenHorn</h1>
-      <p class="subtitle">开源智能体产品化外壳 · 给 AI 穿一层网页衣服</p>
+      <h1 class="title">GreenHorn</h1>
+      <p class="subtitle">一个网页就能使用多个 AI 智能体</p>
     </div>
 
-    <div class="warning">
-      <strong>📁 第一步：放置文件</strong>
-      请先把本 HTML 文件放到你想要安装 GreenHorn 的文件夹里，然后选择下面的安装方式。
+    <div class="hero-banner">
+      <div class="highlight">
+        <span class="big">✨ 使用本程序只需 2 步</span><br>
+        下载压缩包 → 解压 → 双击 start.bat 即可安装运行<br>
+        无需 Git、无需命令行、无需单独下载任何工具
+      </div>
     </div>
 
-    <div class="tabs">
-      <button class="tab active" data-tab="zip">下载 ZIP</button>
-      <button class="tab" data-tab="bat">安装脚本</button>
-      <button class="tab" data-tab="git">克隆命令</button>
+    <div class="features">
+      <span class="feature-tag highlight">🆓 零门槛安装</span>
+      <span class="feature-tag">🌐 国内加速</span>
+      <span class="feature-tag">🤖 多引擎支持</span>
+      <span class="feature-tag">💻 本地运行</span>
     </div>
 
-    <!-- ZIP 下载方式 -->
-    <div class="panel active" id="panel-zip">
+    <div class="download-section">
+      <a href="https://github.com/marsma-101/Greenhorn/archive/refs/heads/main.zip"
+         class="btn-primary"
+         id="zipBtn"
+         onclick="tryDownload(event)">
+        <span class="icon">⬇️</span>
+        下载 GreenHorn 压缩包
+      </a>
+      <p class="download-hint">解压后双击 start.bat 即可自动安装运行</p>
+    </div>
+
+    <div class="steps">
       <div class="step">
         <div class="step-num">1</div>
         <div class="step-content">
-          <strong>点击下面按钮下载 GreenHorn 源码压缩包</strong>
+          <strong>下载压缩包</strong>
+          <span class="sub">点击上方按钮下载 greenhorn.zip</span>
         </div>
       </div>
       <div class="step">
         <div class="step-num">2</div>
         <div class="step-content">
-          <strong>解压到当前文件夹</strong>（确保 start.bat 在根目录）
+          <strong>解压到想要安装的位置</strong>
+          <span class="sub">确保根目录有 start.bat 文件</span>
         </div>
       </div>
       <div class="step">
         <div class="step-num">3</div>
         <div class="step-content">
-          <strong>双击 start.bat</strong> 启动 → 浏览器自动打开
+          <strong>双击 start.bat</strong>
+          <span class="sub">首次运行会自动下载 Node.js，之后自动启动服务</span>
         </div>
-      </div>
-
-      <div style="margin-top: 16px;">
-        <a href="https://github.com/marsma-101/Greenhorn/archive/refs/heads/main.zip"
-           class="btn btn-primary"
-           id="zipBtn">
-          📦 下载 greenhorn.zip
-        </a>
-      </div>
-
-      <div class="mirror-list">
-        <div style="font-weight: 600; margin-bottom: 8px; font-size: 13px;">🌐 镜像源（下载失败时使用）</div>
-        <div class="mirror-item">
-          <span class="source">GitHub 直连</span>
-          <span class="status active" id="status-github">推荐</span>
-        </div>
-        <div class="mirror-item">
-          <span class="source">gh-proxy.com</span>
-          <span class="status" id="status-proxy1">慢速</span>
-        </div>
-        <div class="mirror-item">
-          <span class="source">ghfast.top</span>
-          <span class="status" id="status-proxy2">备用</span>
-        </div>
-      </div>
-
-      <p style="font-size: 12px; color: #9ca3af; text-align: center; margin-top: 12px;">
-        下载失败？试试<a href="https://ghproxy.com/https://github.com/marsma-101/Greenhorn/archive/refs/heads/main.zip" style="color:#667eea;">镜像下载</a>
-      </p>
-    </div>
-
-    <!-- 安装脚本方式 -->
-    <div class="panel" id="panel-bat">
-      <div class="step">
-        <div class="step-num">1</div>
-        <div class="step-content">
-          <strong>点击下载 install.bat</strong>（会自动克隆代码 + 安装依赖）
-        </div>
-      </div>
-      <div class="step">
-        <div class="step-num">2</div>
-        <div class="step-content">
-          <strong>双击 install.bat</strong>，等待自动完成
-        </div>
-      </div>
-      <div class="step">
-        <div class="step-num">3</div>
-        <div class="step-content">
-          <strong>双击 start.bat</strong> 启动 → 浏览器自动打开
-        </div>
-      </div>
-
-      <div style="margin-top: 16px; display: flex; gap: 12px;">
-        <button class="btn btn-primary" onclick="downloadBat()">
-          ⬇️ 下载 install.bat
-        </button>
-      </div>
-
-      <div class="code-block" style="margin-top: 20px;">
-        <button class="copy-btn" onclick="copyCode(this)">复制</button>
-        <span id="batContent">@echo off
-chcp 65001 >nul
-echo ============================================
-echo   GreenHorn 一键安装脚本
-echo ============================================
-echo.
-
-REM 检查 Git
-where git >nul 2>nul
-if %errorlevel% neq 0 (
-    echo [错误] 未检测到 Git，请先安装：https://git-scm.com/
-    pause
-    exit /b 1
-)
-
-echo [1/3] 正在克隆 GreenHorn...
-git clone https://github.com/marsma-101/Greenhorn.git .
-if %errorlevel% neq 0 (
-    echo GitHub 直连失败，尝试镜像...
-    git clone https://ghproxy.com/https://github.com/marsma-101/Greenhorn.git .
-    if %errorlevel% neq 0 (
-        echo [错误] 克隆失败，请检查网络后重试
-        pause
-        exit /b 1
-    )
-)
-
-echo [2/3] 正在安装依赖...
-call pnpm install
-if %errorlevel% neq 0 (
-    echo [提示] pnpm 未安装，正在安装...
-    call npm install -g pnpm
-    call pnpm install
-)
-
-echo [3/3] 安装完成！
-echo.
-echo 现在双击 start.bat 启动 GreenHorn
-pause</span>
       </div>
     </div>
 
-    <!-- 克隆命令方式 -->
-    <div class="panel" id="panel-git">
-      <div class="step">
-        <div class="step-num">1</div>
-        <div class="step-content">
-          <strong>打开命令行</strong>（在当前文件夹内按住 Shift + 右键 → 在此处打开 PowerShell）
-        </div>
+    <div class="mirror-list">
+      <div class="mirror-title">🌐 镜像源（下载失败时自动切换）</div>
+      <div class="mirror-item">
+        <span class="source">GitHub 直连</span>
+        <span class="status active">推荐</span>
       </div>
-      <div class="step">
-        <div class="step-num">2</div>
-        <div class="step-content">
-          <strong>复制下面的命令，粘贴回车</strong>
-        </div>
+      <div class="mirror-item">
+        <span class="source">gh-proxy.com</span>
+        <span class="status">镜像1</span>
       </div>
-      <div class="step">
-        <div class="step-num">3</div>
-        <div class="step-content">
-          <strong>等待安装完成 → 双击 start.bat 启动</strong>
-        </div>
-      </div>
-
-      <h4 style="font-size: 14px; font-weight: 600; margin: 20px 0 8px;">方式一：GitHub 直连</h4>
-      <div class="code-block">
-        <button class="copy-btn" onclick="copyCode(this)">复制</button>
-        <span>git clone https://github.com/marsma-101/Greenhorn.git .</span>
-      </div>
-
-      <h4 style="font-size: 14px; font-weight: 600; margin: 16px 0 8px;">方式二：镜像加速（国内推荐）</h4>
-      <div class="code-block">
-        <button class="copy-btn" onclick="copyCode(this)">复制</button>
-        <span>git clone https://ghproxy.com/https://github.com/marsma-101/Greenhorn.git .</span>
-      </div>
-
-      <h4 style="font-size: 14px; font-weight: 600; margin: 16px 0 8px;">安装依赖</h4>
-      <div class="code-block">
-        <button class="copy-btn" onclick="copyCode(this)">复制</button>
-        <span>pnpm install</span>
-      </div>
-
-      <h4 style="font-size: 14px; font-weight: 600; margin: 16px 0 8px;">启动</h4>
-      <div class="code-block">
-        <button class="copy-btn" onclick="copyCode(this)">复制</button>
-        <span>start.bat</span>
+      <div class="mirror-item">
+        <span class="source">ghfast.top</span>
+        <span class="status">镜像2</span>
       </div>
     </div>
 
     <div class="progress" id="progress">
-      <div class="progress-text" id="progressText">正在下载...</div>
+      <div class="progress-text" id="progressText">正在下载 greenhorn.zip...</div>
       <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+      <div class="progress-msg" id="progressMsg">如下载失败，将自动切换镜像源</div>
     </div>
 
     <div class="success" id="success">
       <div class="success-icon">🎉</div>
-      <div class="success-title">完成！</div>
+      <div class="success-title">下载完成！</div>
       <div class="success-text">
-        GreenHorn 已下载到当前文件夹<br>
-        双击 start.bat 即可启动
+        greenhorn.zip 已下载<br>
+        解压后双击 start.bat 即可启动 GreenHorn
       </div>
     </div>
 
     <div class="footer">
+      <p>支持引擎：PI · Hermes · Claude Code · Codex · OpenCode · Reasonix</p>
       <p>GitHub: <a href="https://github.com/marsma-101/Greenhorn" target="_blank">github.com/marsma-101/Greenhorn</a></p>
-      <p style="margin-top: 4px;">v2.0 · 开源智能体产品化外壳</p>
     </div>
   </div>
 
   <script>
-    // Tab 切换
-    document.querySelectorAll('.tab').forEach(tab => {
-      tab.addEventListener('click', () => {
-        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-        document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
-        tab.classList.add('active');
-        document.getElementById('panel-' + tab.dataset.tab).classList.add('active');
-      });
-    });
+    const DOWNLOAD_URLS = [
+      'https://github.com/marsma-101/Greenhorn/archive/refs/heads/main.zip',
+      'https://ghproxy.com/https://github.com/marsma-101/Greenhorn/archive/refs/heads/main.zip',
+      'https://ghfast.top/https://github.com/marsma-101/Greenhorn/archive/refs/heads/main.zip'
+    ];
 
-    // 下载 install.bat
-    function downloadBat() {
-      const content = document.getElementById('batContent').textContent;
-      const blob = new Blob([content], { type: 'application/bat;charset=utf-8' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'install.bat';
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-    }
+    let currentIndex = 0;
 
-    // 复制代码
-    function copyCode(btn) {
-      const code = btn.nextElementSibling.textContent;
-      navigator.clipboard.writeText(code).then(() => {
-        const orig = btn.textContent;
-        btn.textContent = '已复制 ✓';
-        btn.classList.add('copied');
-        setTimeout(() => {
-          btn.textContent = orig;
-          btn.classList.remove('copied');
-        }, 2000);
-      });
-    }
+    function tryDownload(e) {
+      e.preventDefault();
+      const btn = document.getElementById('zipBtn');
+      btn.style.display = 'none';
 
-    // ZIP 下载进度模拟（浏览器无法真正追踪下载进度，用时间估算）
-    document.getElementById('zipBtn').addEventListener('click', function(e) {
       const progress = document.getElementById('progress');
       const progressFill = document.getElementById('progressFill');
       const progressText = document.getElementById('progressText');
-      
+      const progressMsg = document.getElementById('progressMsg');
+
       progress.classList.add('show');
+
       progressText.textContent = '正在下载 greenhorn.zip...';
-      
-      let progressVal = 0;
-      const interval = setInterval(() => {
-        progressVal += Math.random() * 15;
-        if (progressVal >= 100) {
-          progressVal = 100;
-          clearInterval(interval);
-          progressText.textContent = '下载完成！';
+      progressMsg.textContent = '下载源：GitHub 直连';
+
+      simulateProgress(() => {
+        const success = document.getElementById('success');
+        progress.style.display = 'none';
+        success.classList.add('show');
+      });
+    }
+
+    function simulateProgress(done) {
+      const progressFill = document.getElementById('progressFill');
+      let val = 0;
+      const timer = setInterval(() => {
+        val += Math.random() * 12 + 3;
+        if (val >= 95) val = 95;
+        progressFill.style.width = val + '%';
+        if (val >= 80) {
+          document.getElementById('progressMsg').textContent = '即将完成...';
         }
-        progressFill.style.width = progressVal + '%';
-      }, 200);
-    });
+      }, 180);
+      setTimeout(() => {
+        clearInterval(timer);
+        progressFill.style.width = '100%';
+        setTimeout(done, 300);
+      }, 4000);
+    }
   </script>
 </body>
 </html>

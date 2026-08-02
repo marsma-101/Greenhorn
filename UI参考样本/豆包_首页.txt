@@ -1,4 +1,0 @@
-
-- generic "受区域限制，请先登录再使用豆包。你也可以选择使用 Dola。使用 Dola登录" [ref=e1] clickable [onclick]
-  - button "使用 Dola" [ref=e2]
-  - button "登录" [ref=e3]
