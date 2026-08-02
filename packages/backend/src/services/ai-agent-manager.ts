@@ -16,6 +16,8 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync, readdirSync } from 'fs';
 import path from 'path';
 import os from 'os';
+import { execSync } from 'child_process';
+import type { EngineDefinition } from '@greenhorn/shared';
 
 export interface EngineDataPaths {
   /** 引擎根目录: ai-agent/<engine>/ */
@@ -303,6 +305,55 @@ export function detectEngineById(engineId: string): EngineStatusInfo | null {
  */
 export function getDetectionConfigs(): EngineDetectionConfig[] {
   return ENGINE_DETECTION_CONFIGS;
+}
+
+/**
+ * 命令行检测引擎是否安装（Orca 式检测）
+ * 与文件检测互补：命令在 PATH 中可用 + 文件存在 = 最准
+ */
+export function detectEngineByCmd(definition: EngineDefinition): boolean {
+  if (!definition.detectCmd) return false;
+  
+  const commands = [definition.detectCmd, ...(definition.detectCmdAliases ?? [])];
+  
+  for (const cmd of commands) {
+    try {
+      execSync(`where ${cmd}`, { stdio: 'pipe', timeout: 5000 });
+      return true;
+    } catch {
+      // 命令不在 PATH 中
+    }
+  }
+  
+  return false;
+}
+
+/**
+ * 综合检测：文件检测 + 命令检测
+ */
+export function detectEngineWithCmd(definition: EngineDefinition): EngineStatusInfo {
+  const fileResult = detectEngineById(definition.id);
+  if (fileResult?.installed) {
+    return fileResult;
+  }
+  
+  const cmdInstalled = detectEngineByCmd(definition);
+  if (cmdInstalled) {
+    return {
+      id: definition.id,
+      installed: true,
+      dataPath: getEnginePaths(definition.id).dataDir,
+      canDetect: true,
+      detectionNote: '通过命令行检测发现',
+    };
+  }
+  
+  return fileResult || {
+    id: definition.id,
+    installed: false,
+    dataPath: getEnginePaths(definition.id).dataDir,
+    canDetect: true,
+  };
 }
 
 /**

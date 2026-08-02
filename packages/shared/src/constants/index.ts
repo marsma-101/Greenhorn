@@ -1,3 +1,5 @@
+import type { PromptInjectionMode } from './engines';
+
 export const APP_NAME = 'GreenHorn';
 export const APP_VERSION = '0.1.0';
 export const DEFAULT_PORT = 1001;
@@ -11,15 +13,41 @@ export interface EngineInfo {
   description: string;
   emoji: string;
   status: 'ready' | 'installing' | 'missing';
+  homepageUrl?: string;
 }
 
-export const ENGINES: EngineInfo[] = [
+export type Platform = 'win32' | 'linux' | 'darwin';
+
+export interface EngineDefinition {
+  id: string;
+  name: string;
+  description: string;
+  emoji: string;
+  status: 'ready' | 'installing' | 'missing';
+  detectCmd?: string;
+  detectCmdAliases?: string[];
+  detectRequiredCommands?: string[];
+  launchCmd?: string;
+  launchCmdByPlatform?: Partial<Record<Platform, string>>;
+  promptInjectionMode: PromptInjectionMode;
+  draftPromptFlag?: string;
+  draftPromptEnvVar?: string;
+  homepageUrl?: string;
+  capabilities: string[];
+}
+
+export const ENGINES: EngineDefinition[] = [
   {
     id: 'pi',
     name: 'PI',
     description: '轻量级编程助手，专注代码开发',
     emoji: '🍍',
     status: 'ready',
+    detectCmd: 'pi',
+    launchCmd: 'pi',
+    promptInjectionMode: 'http-api',
+    homepageUrl: 'https://github.com/PineappleCake/pi-coding-agent',
+    capabilities: ['chat', 'streaming', 'thinking'],
   },
   {
     id: 'hermes',
@@ -27,6 +55,11 @@ export const ENGINES: EngineInfo[] = [
     description: '全平台自主智能体，可运行脚本操作文件',
     emoji: '🔥',
     status: 'missing',
+    detectCmd: 'hermes',
+    launchCmd: 'hermes --tui',
+    promptInjectionMode: 'hermes-query',
+    homepageUrl: 'https://github.com/NousResearch/hermes',
+    capabilities: ['chat', 'streaming', 'thinking', 'tools', 'code', 'filesystem'],
   },
   {
     id: 'claude-code',
@@ -34,6 +67,11 @@ export const ENGINES: EngineInfo[] = [
     description: '编程专家，Anthropic 出品，代码能力强',
     emoji: '🟠',
     status: 'missing',
+    detectCmd: 'claude',
+    launchCmd: 'claude',
+    promptInjectionMode: 'http-api',
+    homepageUrl: 'https://docs.anthropic.com/claude',
+    capabilities: ['chat', 'streaming', 'thinking', 'tools', 'code', 'filesystem'],
   },
   {
     id: 'codex',
@@ -41,6 +79,11 @@ export const ENGINES: EngineInfo[] = [
     description: 'OpenAI 编程助手，与 ChatGPT 同源',
     emoji: '⚡',
     status: 'missing',
+    detectCmd: 'codex',
+    launchCmd: 'codex',
+    promptInjectionMode: 'http-sse',
+    homepageUrl: 'https://codex.ai',
+    capabilities: ['chat', 'streaming', 'thinking', 'tools', 'code', 'filesystem', 'browser'],
   },
   {
     id: 'opencode',
@@ -48,6 +91,11 @@ export const ENGINES: EngineInfo[] = [
     description: '开源编程助手，功能全面',
     emoji: '📝',
     status: 'missing',
+    detectCmd: 'opencode',
+    launchCmd: 'opencode',
+    promptInjectionMode: 'http-sse',
+    homepageUrl: 'https://opencode.ai',
+    capabilities: ['chat', 'streaming', 'thinking', 'tools', 'code', 'filesystem'],
   },
   {
     id: 'reasonix',
@@ -55,6 +103,11 @@ export const ENGINES: EngineInfo[] = [
     description: 'DeepSeek 专用，推理能力强',
     emoji: '💡',
     status: 'missing',
+    detectCmd: 'reasonix',
+    launchCmd: 'reasonix',
+    promptInjectionMode: 'http-sse',
+    homepageUrl: 'https://reasonix.ai',
+    capabilities: ['chat', 'streaming', 'thinking', 'tools', 'code', 'filesystem'],
   },
 ];
 

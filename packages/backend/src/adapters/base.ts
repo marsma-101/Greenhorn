@@ -3,17 +3,23 @@ import type {
   EngineChatRequest,
   EngineChatResponse,
   ChatMessage,
+  PromptInjectionMode,
+  EngineDefinition,
 } from '@greenhorn/shared';
 
 export abstract class EngineAdapter {
   engineId: string;
   name: string;
   description: string;
+  promptInjectionMode: PromptInjectionMode;
+  config: EngineDefinition;
 
-  constructor(engineId: string, name: string, description: string) {
-    this.engineId = engineId;
-    this.name = name;
-    this.description = description;
+  constructor(config: EngineDefinition) {
+    this.engineId = config.id;
+    this.name = config.name;
+    this.description = config.description;
+    this.promptInjectionMode = config.promptInjectionMode;
+    this.config = config;
   }
 
   abstract getStatus(): Promise<EngineStatus>;
@@ -35,7 +41,7 @@ export abstract class EngineAdapter {
   }
 
   getCapabilities(): string[] {
-    return ['chat', 'streaming'];
+    return this.config.capabilities || ['chat', 'streaming'];
   }
 
   formatMessages(messages: ChatMessage[], systemPrompt?: string): ChatMessage[] {

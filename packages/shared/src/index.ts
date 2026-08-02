@@ -25,7 +25,7 @@ export type { PromptTemplate } from './types/prompts';
 export type { Skill } from './types/skills';
 
 // Constants
-export type { EngineInfo } from './constants/index';
+export type { EngineInfo, EngineDefinition } from './constants/index';
 
 export {
   APP_NAME,
@@ -48,6 +48,7 @@ export type {
   EngineChatResponse,
   ToolCall,
   TokenUsage,
+  PromptInjectionMode,
 } from './constants/engines';
 
 export { ENGINE_CAPABILITIES } from './constants/engines';

@@ -3,7 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import { IconPaperclip, IconBulb, IconLeaf, IconBolt, IconX, IconDocument, IconSparkles } from '../components/icons';
 import { ENGINES } from '@greenhorn/shared/constants';
-import type { EngineInfo, PromptTemplate, Skill } from '@greenhorn/shared';
+import type { EngineDefinition, PromptTemplate, Skill } from '@greenhorn/shared';
 
 const PROVIDER_NAMES: Record<string, string> = {
   deepseek: 'DeepSeek',
@@ -59,7 +59,7 @@ export default function ChatPage() {
 
   // Read engine from URL param, default to PI
   const engineId = searchParams.get('engine') || 'pi';
-  const currentEngine: EngineInfo = ENGINES.find(e => e.id === engineId) || ENGINES[0];
+  const currentEngine: EngineDefinition = ENGINES.find(e => e.id === engineId) || ENGINES[0];
 
   const [input, setInput] = useState('');
   const [messages, setMessages] = useState<Array<{ role: string; content: string }>>([]);

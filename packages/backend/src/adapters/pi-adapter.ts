@@ -3,15 +3,12 @@ import type {
   EngineStatus,
   EngineChatRequest,
   EngineChatResponse,
+  EngineDefinition,
 } from '@greenhorn/shared';
 
 export class PIAdapter extends EngineAdapter {
-  constructor() {
-    super('pi', 'PI', '轻量级编程助手');
-  }
-
-  getCapabilities(): string[] {
-    return ['chat', 'streaming', 'thinking'];
+  constructor(config: EngineDefinition) {
+    super(config);
   }
 
   async getStatus(): Promise<EngineStatus> {
@@ -120,4 +117,6 @@ export class PIAdapter extends EngineAdapter {
   }
 }
 
-registry.register(new PIAdapter());
+import { ENGINES } from '@greenhorn/shared/constants';
+const piConfig = ENGINES.find(e => e.id === 'pi')!;
+registry.register(new PIAdapter(piConfig));

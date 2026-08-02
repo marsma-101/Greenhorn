@@ -3,6 +3,7 @@ import type {
   EngineStatus,
   EngineChatRequest,
   EngineChatResponse,
+  EngineDefinition,
 } from '@greenhorn/shared';
 import { spawn } from 'child_process';
 import path from 'path';
@@ -14,13 +15,9 @@ const HERMES_DEFAULT_PORT = 9119;
 export class HermesAdapter extends EngineAdapter {
   private port: number;
 
-  constructor(port: number = HERMES_DEFAULT_PORT) {
-    super('hermes', 'Hermes', '全平台自主智能体');
+  constructor(config: EngineDefinition, port: number = HERMES_DEFAULT_PORT) {
+    super(config);
     this.port = port;
-  }
-
-  getCapabilities(): string[] {
-    return ['chat', 'streaming', 'thinking', 'tools', 'code', 'filesystem'];
   }
 
   async getStatus(): Promise<EngineStatus> {
@@ -139,4 +136,6 @@ export class HermesAdapter extends EngineAdapter {
   }
 }
 
-registry.register(new HermesAdapter());
+import { ENGINES } from '@greenhorn/shared/constants';
+const hermesConfig = ENGINES.find(e => e.id === 'hermes')!;
+registry.register(new HermesAdapter(hermesConfig));

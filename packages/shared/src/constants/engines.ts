@@ -57,6 +57,16 @@ export interface TokenUsage {
   totalTokens: number;
 }
 
+export type PromptInjectionMode =
+  | 'argv'
+  | 'flag-prompt'
+  | 'flag-prompt-interactive'
+  | 'flag-interactive'
+  | 'hermes-query'
+  | 'stdin-after-start'
+  | 'http-api'
+  | 'http-sse';
+
 export const ENGINE_CAPABILITIES: EngineCapability[] = [
   { id: 'chat', name: '对话', description: '基础对话能力', level: 'basic', supported: true },
   { id: 'streaming', name: '流式输出', description: '逐字输出回复', level: 'basic', supported: true },

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import type { EngineInfo } from '@greenhorn/shared/constants';
+import type { EngineDefinition } from '@greenhorn/shared/constants';
 import { useApp } from '../context/AppContext';
 import { IconCheck, IconSparkles } from './icons';
 
@@ -28,7 +28,7 @@ interface InstallResult {
 }
 
 interface EngineInstallModalProps {
-  engine: EngineInfo;
+  engine: EngineDefinition;
   onClose: () => void;
   onInstalled: (engineId: string) => void;
 }

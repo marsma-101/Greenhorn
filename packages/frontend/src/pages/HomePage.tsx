@@ -1,9 +1,9 @@
 import { useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { APP_NAME, APP_VERSION, ENGINES } from '@greenhorn/shared/constants';
-import type { EngineInfo } from '@greenhorn/shared/constants';
+import type { EngineDefinition } from '@greenhorn/shared/constants';
 import { useApp } from '../context/AppContext';
-import { IconLeaf, IconSparkles, IconPlus } from '../components/icons';
+import { IconLeaf, IconSparkles, IconPlus, IconExternalLink } from '../components/icons';
 import EngineInstallModal from '../components/EngineInstallModal';
 
 interface EngineStatus {
@@ -28,15 +28,15 @@ interface EnvStatus {
 export default function HomePage() {
   const navigate = useNavigate();
   const { useSVG } = useApp();
-  const [engines, setEngines] = useState<EngineInfo[]>(
+  const [engines, setEngines] = useState<EngineDefinition[]>(
     ENGINES.map(e => ({ ...e }))
   );
   const [envStatus, setEnvStatus] = useState<EnvStatus | null>(null);
   const [locationWarning, setLocationWarning] = useState<string | null>(null);
   const [showWelcome, setShowWelcome] = useState(true);
   const [showGuide, setShowGuide] = useState(false);
-  const [installingEngine, setInstallingEngine] = useState<EngineInfo | null>(null);
-  const [confirmEngine, setConfirmEngine] = useState<EngineInfo | null>(null);
+  const [installingEngine, setInstallingEngine] = useState<EngineDefinition | null>(null);
+  const [confirmEngine, setConfirmEngine] = useState<EngineDefinition | null>(null);
 
   useEffect(() => {
     fetch('/api/engines/status')
@@ -92,7 +92,7 @@ export default function HomePage() {
 
   const installedCount = engines.filter(e => e.status === 'ready').length;
 
-  const handleEngineClick = (engine: EngineInfo) => {
+  const handleEngineClick = (engine: EngineDefinition) => {
     if (engine.status === 'ready') {
       navigate(`/chat?engine=${engine.id}`);
     } else {
@@ -247,6 +247,27 @@ export default function HomePage() {
                   <h3 style={{ fontSize: '0.9375rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px' }}>
                     <span style={{ fontSize: '1.125rem' }}>{engine.emoji}</span>
                     {engine.name}
+                    {engine.homepageUrl && (
+                      <a
+                        href={engine.homepageUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={(e) => e.stopPropagation()}
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          color: 'var(--c-text-muted)',
+                          fontSize: '0.75rem',
+                          textDecoration: 'none',
+                          transition: 'color var(--dur-fast)',
+                        }}
+                        onMouseEnter={(e) => e.currentTarget.style.color = 'var(--c-accent)'}
+                        onMouseLeave={(e) => e.currentTarget.style.color = 'var(--c-text-muted)'}
+                        title="查看官方文档"
+                      >
+                        {useSVG ? <IconExternalLink size={12} /> : '🔗'}
+                      </a>
+                    )}
                   </h3>
                   <p style={{ color: 'var(--c-text-muted)', fontSize: '0.75rem', marginTop: '0.25rem', lineHeight: 1.5 }}>
                     {engine.description}

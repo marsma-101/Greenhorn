@@ -183,3 +183,12 @@ export const IconWrench = ({ size, className, title }: IconProps) => (
     <path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 0 0 5.4-5.4l-2.6 2.6-2.4-2.4 2.6-2.6z" />
   </svg>
 );
+
+export const IconExternalLink = ({ size, className, title }: IconProps) => (
+  <svg {...base(size, 2)} className={className} aria-label={title}>
+    <title>{title}</title>
+    <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+    <polyline points="15 3 21 3 21 9" />
+    <line x1="10" y1="14" x2="21" y2="3" />
+  </svg>
+);
