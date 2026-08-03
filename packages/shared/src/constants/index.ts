@@ -1,7 +1,7 @@
 import type { PromptInjectionMode } from './engines';
 
 export const APP_NAME = 'GreenHorn';
-export const APP_VERSION = '0.1.0';
+export const APP_VERSION = '0.1.1';
 export const DEFAULT_PORT = 1001;
 export const DEFAULT_TEMPERATURE = 0.7;
 export const DEFAULT_MAX_TOKENS = 4096;
@@ -34,6 +34,13 @@ export interface EngineDefinition {
   draftPromptEnvVar?: string;
   homepageUrl?: string;
   capabilities: string[];
+  requiresApiKey?: boolean;
+  apiKeyLabel?: string;
+  apiKeyHint?: string;
+  apiKeyRegisterUrl?: string;
+  defaultProvider?: string;
+  defaultModel?: string;
+  configGuideNote?: string;
 }
 
 export const ENGINES: EngineDefinition[] = [
@@ -60,6 +67,8 @@ export const ENGINES: EngineDefinition[] = [
     promptInjectionMode: 'hermes-query',
     homepageUrl: 'https://github.com/NousResearch/hermes',
     capabilities: ['chat', 'streaming', 'thinking', 'tools', 'code', 'filesystem'],
+    requiresApiKey: false,
+    configGuideNote: 'Hermes 为本地引擎，首次使用需自动配置，无需 API Key',
   },
   {
     id: 'claude-code',
@@ -72,6 +81,13 @@ export const ENGINES: EngineDefinition[] = [
     promptInjectionMode: 'http-api',
     homepageUrl: 'https://docs.anthropic.com/claude',
     capabilities: ['chat', 'streaming', 'thinking', 'tools', 'code', 'filesystem'],
+    requiresApiKey: true,
+    apiKeyLabel: 'ANTHROPIC_API_KEY',
+    apiKeyHint: '在 Anthropic Console 创建 API Key 后粘贴',
+    apiKeyRegisterUrl: 'https://console.anthropic.com/settings/keys',
+    defaultProvider: 'anthropic',
+    defaultModel: 'claude-sonnet-4-20250514',
+    configGuideNote: 'Claude Code 需要 ANTHROPIC_API_KEY 才能运行，必须配置后才能开始对话',
   },
   {
     id: 'codex',
@@ -84,6 +100,13 @@ export const ENGINES: EngineDefinition[] = [
     promptInjectionMode: 'http-sse',
     homepageUrl: 'https://codex.ai',
     capabilities: ['chat', 'streaming', 'thinking', 'tools', 'code', 'filesystem', 'browser'],
+    requiresApiKey: true,
+    apiKeyLabel: 'OpenAI API Key',
+    apiKeyHint: '在 OpenAI Platform 创建 API Key 后粘贴',
+    apiKeyRegisterUrl: 'https://platform.openai.com/api-keys',
+    defaultProvider: 'openai',
+    defaultModel: 'codex',
+    configGuideNote: 'Codex 需要 OpenAI API Key 才能运行，必须配置后才能开始对话',
   },
   {
     id: 'opencode',
@@ -96,6 +119,13 @@ export const ENGINES: EngineDefinition[] = [
     promptInjectionMode: 'http-sse',
     homepageUrl: 'https://opencode.ai',
     capabilities: ['chat', 'streaming', 'thinking', 'tools', 'code', 'filesystem'],
+    requiresApiKey: true,
+    apiKeyLabel: 'API Key',
+    apiKeyHint: '在 OpenCode 平台创建 API Key 后粘贴',
+    apiKeyRegisterUrl: 'https://opencode.ai/keys',
+    defaultProvider: 'opencode',
+    defaultModel: 'opus',
+    configGuideNote: 'OpenCode 需要 API Key 才能运行，必须配置后才能开始对话',
   },
   {
     id: 'reasonix',
@@ -108,6 +138,13 @@ export const ENGINES: EngineDefinition[] = [
     promptInjectionMode: 'http-sse',
     homepageUrl: 'https://reasonix.ai',
     capabilities: ['chat', 'streaming', 'thinking', 'tools', 'code', 'filesystem'],
+    requiresApiKey: true,
+    apiKeyLabel: 'DEEPSEEK_API_KEY',
+    apiKeyHint: '在 DeepSeek Platform 创建 API Key 后粘贴',
+    apiKeyRegisterUrl: 'https://platform.deepseek.com/api_keys',
+    defaultProvider: 'deepseek',
+    defaultModel: 'deepseek-reasoner',
+    configGuideNote: 'Reasonix 需要 DEEPSEEK_API_KEY 才能运行，必须配置后才能开始对话',
   },
 ];
 
