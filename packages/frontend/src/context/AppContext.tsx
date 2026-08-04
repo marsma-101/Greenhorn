@@ -17,6 +17,27 @@ interface SessionMeta {
 
 export type UIStyle = 'default' | 'claude' | 'doubao';
 
+export interface EngineConfig {
+  model?: string;
+  apiKey?: string;
+  baseUrl?: string;
+  temperature?: number;
+  thinkingLevel?: 'off' | 'low' | 'medium' | 'high';
+  persona?: string;
+  provider?: string;
+  engineSpecific?: Record<string, any>;
+}
+
+export interface EngineStatus {
+  engineId: string;
+  installed: boolean;
+  running: boolean;
+  version?: string;
+  pid?: number;
+  capabilities: string[];
+  lastCheck?: string;
+}
+
 interface AppSettings {
   hideThinkingBlock: boolean;
   defaultThinkingLevel: string;
@@ -29,10 +50,17 @@ interface AppSettings {
 }
 
 interface AppContextValue {
-  // Config
+  // Config (legacy PI config)
   config: Config;
   configLoaded: boolean;
   refreshConfig: () => Promise<void>;
+  // Per-engine configs
+  engineConfigs: Record<string, EngineConfig>;
+  loadEngineConfig: (engineId: string) => Promise<EngineConfig>;
+  saveEngineConfig: (engineId: string, engineConfig: EngineConfig) => Promise<void>;
+  // Engine statuses
+  engineStatuses: EngineStatus[];
+  refreshEngineStatuses: () => Promise<void>;
   // Settings
   settings: AppSettings;
   settingsLoaded: boolean;
@@ -69,11 +97,18 @@ const DEFAULT_SETTINGS: AppSettings = {
   uiStyle: 'default',
 };
 
+const DEFAULT_ENGINE_CONFIG: EngineConfig = {
+  temperature: 0.7,
+  thinkingLevel: 'off',
+};
+
 const AppContext = createContext<AppContextValue | null>(null);
 
 export function AppProvider({ children }: { children: ReactNode }) {
   const [config, setConfig] = useState<Config>(DEFAULT_CONFIG);
   const [configLoaded, setConfigLoaded] = useState(false);
+  const [engineConfigs, setEngineConfigs] = useState<Record<string, EngineConfig>>({});
+  const [engineStatuses, setEngineStatuses] = useState<EngineStatus[]>([]);
   const [settings, setSettings] = useState<AppSettings>(DEFAULT_SETTINGS);
   const [settingsLoaded, setSettingsLoaded] = useState(false);
   const [uiStyle, setUIStyleState] = useState<UIStyle>('default');
@@ -82,12 +117,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const useSVG = uiStyle === 'claude' || uiStyle === 'doubao';
 
-  // Apply theme to <html> element so CSS vars take effect
+  // Apply theme
   useEffect(() => {
     document.documentElement.setAttribute('data-ui-style', uiStyle);
   }, [uiStyle]);
 
-  // Load config
+  // Load legacy config
   const refreshConfig = useCallback(async () => {
     try {
       const res = await fetch('/api/config');
@@ -101,6 +136,50 @@ export function AppProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     refreshConfig().then(() => setConfigLoaded(true));
   }, [refreshConfig]);
+
+  // Refresh engine statuses
+  const refreshEngineStatuses = useCallback(async () => {
+    try {
+      const res = await fetch('/api/engines/status');
+      const data = await res.json();
+      setEngineStatuses(data.engines || []);
+    } catch {
+      // ignore
+    }
+  }, []);
+
+  useEffect(() => {
+    refreshEngineStatuses();
+    const interval = setInterval(refreshEngineStatuses, 15000);
+    return () => clearInterval(interval);
+  }, [refreshEngineStatuses]);
+
+  // Load engine config
+  const loadEngineConfig = useCallback(async (engineId: string): Promise<EngineConfig> => {
+    try {
+      const res = await fetch(`/api/engines/${engineId}/config`);
+      const data = await res.json();
+      const engineConfig = { ...DEFAULT_ENGINE_CONFIG, ...(data.config || {}) };
+      setEngineConfigs(prev => ({ ...prev, [engineId]: engineConfig }));
+      return engineConfig;
+    } catch {
+      return DEFAULT_ENGINE_CONFIG;
+    }
+  }, []);
+
+  // Save engine config
+  const saveEngineConfig = useCallback(async (engineId: string, engineConfig: EngineConfig) => {
+    setEngineConfigs(prev => ({ ...prev, [engineId]: engineConfig }));
+    try {
+      await fetch(`/api/engines/${engineId}/config`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(engineConfig),
+      });
+    } catch {
+      // ignore
+    }
+  }, []);
 
   // Load settings
   useEffect(() => {
@@ -140,9 +219,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
-    refreshSessions().then(() => {
-      // Will be handled by ChatPage for initial session
-    });
+    refreshSessions();
   }, [refreshSessions]);
 
   const setUIStyle = useCallback(async (style: UIStyle) => {
@@ -235,6 +312,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
     config,
     configLoaded,
     refreshConfig,
+    engineConfigs,
+    loadEngineConfig,
+    saveEngineConfig,
+    engineStatuses,
+    refreshEngineStatuses,
     settings,
     settingsLoaded,
     updateSettings,

@@ -3,328 +3,537 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>GreenHorn - 一键安装</title>
+  <title>GreenHorn — 高端科技智能体平台</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@600;900&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <style>
+    :root {
+      --bg: #0a0a0f;
+      --bg-card: #111118;
+      --bg-elevated: #16161f;
+      --accent: #d4a853;
+      --accent-bright: #e8c97a;
+      --accent-dim: rgba(212, 168, 83, 0.15);
+      --text: #e8e8ec;
+      --text-secondary: #9a9aa5;
+      --text-muted: #5c5c66;
+      --border: rgba(255,255,255,0.06);
+      --border-accent: rgba(212, 168, 83, 0.25);
+      --glow: rgba(212, 168, 83, 0.08);
+      --radius-sm: 4px;
+      --radius-md: 8px;
+      --radius-lg: 16px;
+    }
     * { margin: 0; padding: 0; box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
     body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bg);
+      color: var(--text);
       min-height: 100vh;
+      line-height: 1.6;
+      overflow-x: hidden;
+    }
+    /* 背景装饰 */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 80% 50% at 50% -20%, rgba(212,168,83,0.06), transparent),
+        radial-gradient(ellipse 60% 40% at 80% 100%, rgba(100,80,200,0.04), transparent);
+      pointer-events: none;
+      z-index: 0;
+    }
+    .grid-bg {
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(255,255,255,0.015) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.015) 1px, transparent 1px);
+      background-size: 64px 64px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .container {
+      position: relative;
+      z-index: 1;
+      max-width: 720px;
+      margin: 0 auto;
+      padding: 48px 24px 64px;
+    }
+
+    /* Header */
+    .header {
+      text-align: center;
+      margin-bottom: 56px;
+      padding-top: 32px;
+    }
+    .logo-mark {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 72px;
+      height: 72px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--accent-dim), transparent);
+      border: 1px solid var(--border-accent);
+      margin-bottom: 24px;
+      font-size: 32px;
+      position: relative;
+    }
+    .logo-mark::after {
+      content: '';
+      position: absolute;
+      inset: -1px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--accent), transparent);
+      opacity: 0.1;
+      pointer-events: none;
+    }
+    .brand-name {
+      font-family: 'Noto Serif SC', serif;
+      font-size: clamp(36px, 8vw, 56px);
+      font-weight: 900;
+      letter-spacing: 0.02em;
+      background: linear-gradient(135deg, var(--text) 0%, var(--accent-bright) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 12px;
+      line-height: 1.1;
+    }
+    .tagline {
+      font-size: 15px;
+      color: var(--text-secondary);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      font-weight: 500;
+    }
+
+    /* Divider */
+    .divider {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin: 40px 0;
+    }
+    .divider::before, .divider::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--border), transparent);
+    }
+    .divider span {
+      font-size: 11px;
+      color: var(--text-muted);
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      font-weight: 600;
+    }
+
+    /* Hero Banner */
+    .hero-banner {
+      background: linear-gradient(135deg, rgba(212,168,83,0.08), rgba(212,168,83,0.02));
+      border: 1px solid var(--border-accent);
+      border-radius: var(--radius-lg);
+      padding: 28px 32px;
+      margin-bottom: 48px;
+      position: relative;
+      overflow: hidden;
+    }
+    .hero-banner::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--accent), transparent);
+      opacity: 0.4;
+    }
+    .hero-label {
+      font-size: 11px;
+      color: var(--accent);
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      font-weight: 700;
+      margin-bottom: 12px;
+    }
+    .hero-text {
+      font-size: 16px;
+      color: var(--text);
+      line-height: 1.8;
+    }
+    .hero-text strong {
+      color: var(--accent-bright);
+      font-weight: 600;
+    }
+
+    /* Features */
+    .features {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 48px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    .feature-tag {
+      background: var(--bg-elevated);
+      color: var(--text-secondary);
+      padding: 8px 18px;
+      border-radius: 100px;
+      font-size: 13px;
+      font-weight: 500;
+      border: 1px solid var(--border);
+      transition: all 0.3s ease;
+    }
+    .feature-tag:hover {
+      border-color: var(--border-accent);
+      color: var(--accent);
+      transform: translateY(-1px);
+    }
+    .feature-tag.highlight {
+      background: var(--accent-dim);
+      color: var(--accent);
+      border-color: var(--border-accent);
+    }
+
+    /* Download Section */
+    .download-section {
+      margin-bottom: 56px;
+    }
+    .btn-primary {
       display: flex;
       align-items: center;
       justify-content: center;
-      padding: 20px;
-      color: #1a1a2e;
-    }
-    .container {
-      background: #fff;
-      border-radius: 20px;
-      box-shadow: 0 20px 60px rgba(0,0,0,0.2);
-      padding: 48px 40px;
-      max-width: 560px;
+      gap: 14px;
       width: 100%;
-    }
-    .header {
-      text-align: center;
-      margin-bottom: 32px;
-    }
-    .logo {
-      font-size: 56px;
-      margin-bottom: 12px;
-    }
-    .title {
-      font-size: 32px;
-      font-weight: 800;
-      color: #1a1a2e;
-      margin-bottom: 12px;
-    }
-    .subtitle {
-      font-size: 16px;
-      color: #6b7280;
-      line-height: 1.7;
-    }
-    .hero-banner {
-      background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
-      border: 2px solid #f59e0b;
-      border-radius: 16px;
-      padding: 20px 24px;
-      margin-bottom: 32px;
-      text-align: center;
-    }
-    .hero-banner .highlight {
-      font-size: 15px;
-      font-weight: 600;
-      color: #92400e;
-      line-height: 1.8;
-    }
-    .hero-banner .highlight .big {
+      padding: 22px 36px;
+      background: linear-gradient(135deg, var(--accent) 0%, #b8923f 100%);
+      color: #0a0a0f;
+      border: none;
+      border-radius: var(--radius-md);
       font-size: 17px;
-      color: #78350f;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      text-decoration: none;
+      position: relative;
+      overflow: hidden;
+      letter-spacing: 0.02em;
     }
+    .btn-primary::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, rgba(255,255,255,0.15), transparent);
+      opacity: 0;
+      transition: opacity 0.3s;
+      pointer-events: none;
+    }
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 16px 48px rgba(212, 168, 83, 0.25);
+    }
+    .btn-primary:hover::before {
+      opacity: 1;
+    }
+    .btn-primary:active {
+      transform: translateY(0);
+    }
+    .btn-primary .icon {
+      font-size: 20px;
+      transition: transform 0.3s;
+    }
+    .btn-primary:hover .icon {
+      transform: translateY(2px);
+    }
+    .download-hint {
+      text-align: center;
+      margin-top: 16px;
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+
+    /* Steps */
     .steps {
-      margin-bottom: 32px;
+      margin-bottom: 48px;
+    }
+    .steps-header {
+      display: flex;
+      align-items: baseline;
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+    .steps-title {
+      font-family: 'Noto Serif SC', serif;
+      font-size: 24px;
+      font-weight: 600;
+      color: var(--text);
+    }
+    .steps-count {
+      font-size: 13px;
+      color: var(--text-muted);
     }
     .step {
       display: flex;
-      gap: 16px;
-      margin-bottom: 14px;
-      padding: 14px 18px;
-      background: #f9fafb;
-      border-radius: 14px;
-      border: 1px solid #f3f4f6;
-      transition: all 0.2s;
+      gap: 20px;
+      padding: 20px 24px;
+      background: var(--bg-card);
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border);
+      margin-bottom: 12px;
+      transition: all 0.3s ease;
+      position: relative;
     }
     .step:hover {
-      background: #f3f4f6;
-      border-color: #e5e7eb;
+      background: var(--bg-elevated);
+      border-color: var(--border-accent);
+      transform: translateX(4px);
+    }
+    .step::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: 3px;
+      background: linear-gradient(180deg, var(--accent), transparent);
+      border-radius: 3px 0 0 3px;
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+    .step:hover::before {
+      opacity: 1;
     }
     .step-num {
       flex-shrink: 0;
-      width: 32px;
-      height: 32px;
-      background: linear-gradient(135deg, #667eea, #764ba2);
-      color: white;
+      width: 36px;
+      height: 36px;
+      background: var(--bg-elevated);
+      color: var(--accent);
+      border: 1px solid var(--border-accent);
       border-radius: 50%;
       display: flex;
       align-items: center;
       justify-content: center;
       font-size: 14px;
       font-weight: 700;
+      font-family: 'Inter', sans-serif;
     }
     .step-content {
       flex: 1;
-      font-size: 15px;
-      line-height: 1.6;
-      color: #374151;
-      padding-top: 3px;
+      padding-top: 4px;
     }
-    .step-content strong { color: #1a1a2e; font-weight: 600; }
-    .step-content .sub {
+    .step-content strong {
       display: block;
+      font-size: 15px;
+      color: var(--text);
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+    .step-content .sub {
       font-size: 13px;
-      color: #9ca3af;
-      margin-top: 2px;
+      color: var(--text-muted);
+      line-height: 1.6;
     }
-    .download-section {
-      margin-bottom: 28px;
+
+    /* Mirror Section */
+    .mirror-section {
+      margin-bottom: 48px;
     }
-    .btn-primary {
+    .mirror-header {
       display: flex;
       align-items: center;
-      justify-content: center;
-      gap: 12px;
-      width: 100%;
-      padding: 20px 32px;
-      background: linear-gradient(135deg, #667eea, #764ba2);
-      color: white;
-      border: none;
-      border-radius: 14px;
-      font-size: 18px;
-      font-weight: 700;
-      cursor: pointer;
-      transition: all 0.2s;
-      text-decoration: none;
-      box-shadow: 0 8px 24px rgba(102,126,234,0.4);
-    }
-    .btn-primary:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 12px 32px rgba(102,126,234,0.5);
-    }
-    .btn-primary:active {
-      transform: translateY(0);
-    }
-    .btn-primary .icon { font-size: 22px; }
-    .download-hint {
-      text-align: center;
-      margin-top: 12px;
-      font-size: 14px;
-      color: #6b7280;
-    }
-    .mirror-list {
-      background: #f9fafb;
-      border-radius: 12px;
-      padding: 16px 20px;
-      margin-bottom: 24px;
+      gap: 8px;
+      margin-bottom: 16px;
     }
     .mirror-title {
       font-size: 13px;
-      font-weight: 600;
-      color: #4b5563;
-      margin-bottom: 10px;
-    }
-    .mirror-item {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 8px 0;
-      border-bottom: 1px solid #e5e7eb;
-    }
-    .mirror-item:last-child { border-bottom: none; }
-    .mirror-item .source { font-size: 14px; color: #374151; font-weight: 500; }
-    .mirror-item .status {
-      font-size: 12px;
-      color: #9ca3af;
-      padding: 2px 8px;
-      border-radius: 10px;
-      background: #f3f4f6;
-    }
-    .mirror-item .status.active {
-      color: #059669;
-      background: #d1fae5;
-      font-weight: 600;
-    }
-    .progress {
-      display: none;
-      margin-top: 16px;
-      padding: 20px;
-      background: #eff6ff;
-      border: 1px solid #bfdbfe;
-      border-radius: 14px;
-      text-align: center;
-    }
-    .progress.show { display: block; }
-    .progress-text { font-size: 15px; color: #1e40af; margin-bottom: 12px; font-weight: 500; }
-    .progress-bar {
-      height: 10px;
-      background: #dbeafe;
-      border-radius: 5px;
-      overflow: hidden;
-      max-width: 320px;
-      margin: 0 auto;
-    }
-    .progress-fill {
-      height: 100%;
-      background: linear-gradient(90deg, #3b82f6, #667eea);
-      border-radius: 5px;
-      width: 0;
-      transition: width 0.3s;
-    }
-    .progress-msg {
-      margin-top: 12px;
-      font-size: 13px;
-      color: #3b82f6;
-    }
-    .success {
-      display: none;
-      text-align: center;
-      padding: 24px;
-      background: #d1fae5;
-      border-radius: 14px;
-      margin-top: 16px;
-    }
-    .success.show { display: block; }
-    .success-icon { font-size: 48px; margin-bottom: 12px; }
-    .success-title { font-size: 20px; font-weight: 700; color: #065f46; margin-bottom: 8px; }
-    .success-text { font-size: 15px; color: #047857; line-height: 1.7; }
-    .features {
-      display: flex;
-      gap: 12px;
-      margin-bottom: 28px;
-      flex-wrap: wrap;
-      justify-content: center;
-    }
-    .feature-tag {
-      background: #f3f4f6;
-      color: #4b5563;
-      padding: 6px 14px;
-      border-radius: 20px;
-      font-size: 13px;
+      color: var(--text-muted);
       font-weight: 500;
     }
-    .feature-tag.highlight {
-      background: #eff6ff;
-      color: #1d4ed8;
+    .mirror-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
     }
+    .mirror-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 14px 20px;
+      background: var(--bg-card);
+      color: var(--text-secondary);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      text-decoration: none;
+    }
+    .mirror-btn:hover {
+      background: var(--bg-elevated);
+      border-color: var(--border-accent);
+      color: var(--accent);
+      transform: translateY(-1px);
+    }
+    .mirror-btn .badge {
+      font-size: 10px;
+      padding: 2px 6px;
+      border-radius: 4px;
+      background: var(--accent-dim);
+      color: var(--accent);
+      font-weight: 600;
+    }
+
+    /* Footer */
     .footer {
       text-align: center;
-      padding-top: 24px;
-      border-top: 1px solid #f3f4f6;
+      padding-top: 32px;
+      border-top: 1px solid var(--border);
     }
-    .footer p { font-size: 13px; color: #9ca3af; line-height: 1.8; }
-    .footer a { color: #667eea; text-decoration: none; }
-    .footer a:hover { text-decoration: underline; }
+    .footer-engines {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-bottom: 12px;
+      letter-spacing: 0.05em;
+    }
+    .footer-link {
+      font-size: 13px;
+      color: var(--text-secondary);
+    }
+    .footer-link a {
+      color: var(--accent);
+      text-decoration: none;
+      border-bottom: 1px solid transparent;
+      transition: border-color 0.3s;
+    }
+    .footer-link a:hover {
+      border-bottom-color: var(--accent);
+    }
+
+    /* Animations */
+    @keyframes fadeUp {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    .animate-in {
+      animation: fadeUp 0.6s ease forwards;
+    }
+    .delay-1 { animation-delay: 0.1s; opacity: 0; }
+    .delay-2 { animation-delay: 0.2s; opacity: 0; }
+    .delay-3 { animation-delay: 0.3s; opacity: 0; }
+    .delay-4 { animation-delay: 0.4s; opacity: 0; }
+    .delay-5 { animation-delay: 0.5s; opacity: 0; }
+
+    /* Responsive */
+    @media (max-width: 640px) {
+      .container { padding: 32px 16px 48px; }
+      .mirror-grid { grid-template-columns: 1fr; }
+      .hero-banner { padding: 24px; }
+      .step { padding: 16px 20px; gap: 16px; }
+    }
   </style>
 </head>
 <body>
+  <div class="grid-bg"></div>
   <div class="container">
-    <div class="header">
-      <div class="logo">🍃</div>
-      <h1 class="title">GreenHorn</h1>
-      <p class="subtitle">一个网页就能使用多个 AI 智能体</p>
-    </div>
+    <header class="header animate-in">
+      <div class="logo-mark">🍃</div>
+      <h1 class="brand-name">GreenHorn</h1>
+      <p class="tagline">一个网页就能使用多个 AI 智能体</p>
+    </header>
 
-    <div class="hero-banner">
-      <div class="highlight">
-        <span class="big">✨ 使用本程序只需 2 步</span><br>
+    <div class="hero-banner animate-in delay-1">
+      <div class="hero-label">✦ 快速开始</div>
+      <div class="hero-text">
+        <strong>只需 2 步即可运行</strong><br>
         下载压缩包 → 解压 → 双击 start.bat 即可安装运行<br>
         无需 Git、无需命令行、无需单独下载任何工具
       </div>
     </div>
 
-    <div class="features">
+    <div class="features animate-in delay-2">
       <span class="feature-tag highlight">🆓 零门槛安装</span>
       <span class="feature-tag">🌐 国内加速</span>
       <span class="feature-tag">🤖 多引擎支持</span>
       <span class="feature-tag">💻 本地运行</span>
     </div>
 
-    <div class="download-section">
-      <a href="https://github.com/marsma-101/Greenhorn/archive/refs/heads/main.zip"
-         download="greenhorn.zip"
+    <div class="download-section animate-in delay-3">
+      <a href="https://github.com/marsma-101/Greenhorn/releases/latest/download/greenhorn-green.zip"
          class="btn-primary"
          id="zipBtn">
-        <span class="icon">⬇️</span>
-        下载 GreenHorn 压缩包
+        <span class="icon">⬇</span>
+        下载 GreenHorn 绿色版
       </a>
-      <p class="download-hint">点击后请留意浏览器下载提示（Ctrl+J 查看下载进度）</p>
+      <p class="download-hint">绿色版已内置 Node.js 和所有依赖，解压即运行，无需联网</p>
     </div>
 
-    <div class="steps">
+    <div class="divider animate-in delay-4"><span>安装步骤</span></div>
+
+    <div class="steps animate-in delay-4">
+      <div class="steps-header">
+        <h2 class="steps-title">三步完成部署</h2>
+        <span class="steps-count">3 STEPS</span>
+      </div>
       <div class="step">
-        <div class="step-num">1</div>
+        <div class="step-num">01</div>
         <div class="step-content">
-          <strong>下载压缩包</strong>
-          <span class="sub">点击上方按钮下载 greenhorn.zip</span>
+          <strong>下载绿色版</strong>
+          <span class="sub">点击上方按钮下载 greenhorn-green.zip（已内置所有依赖）</span>
         </div>
       </div>
       <div class="step">
-        <div class="step-num">2</div>
+        <div class="step-num">02</div>
         <div class="step-content">
           <strong>解压到想要安装的位置</strong>
           <span class="sub">确保根目录有 start.bat 文件</span>
         </div>
       </div>
       <div class="step">
-        <div class="step-num">3</div>
+        <div class="step-num">03</div>
         <div class="step-content">
           <strong>双击 start.bat</strong>
-          <span class="sub">首次运行会自动下载 Node.js，之后自动启动服务</span>
+          <span class="sub">绿色版首次启动无需下载，直接运行</span>
         </div>
       </div>
     </div>
 
-    <div style="text-align: center; margin: 16px 0 8px; font-size: 14px; color: var(--c-text-muted);">
-      GitHub 直连太慢？试试镜像：
-    </div>
-    <div style="display: flex; gap: 10px; margin-bottom: 20px;">
-      <a href="https://ghproxy.com/https://github.com/marsma-101/Greenhorn/archive/refs/heads/main.zip"
-         download="greenhorn.zip"
-         class="btn btn-secondary"
-         style="flex: 1; text-align: center; justify-content: center; display: flex;">
-        镜像1（gh-proxy）
-      </a>
-      <a href="https://ghfast.top/https://github.com/marsma-101/Greenhorn/archive/refs/heads/main.zip"
-         download="greenhorn.zip"
-         class="btn btn-secondary"
-         style="flex: 1; text-align: center; justify-content: center; display: flex;">
-        镜像2（ghfast）
-      </a>
+    <div class="mirror-section animate-in delay-5">
+      <div class="mirror-header">
+        <span class="mirror-title">GitHub Release 直连太慢？试试镜像加速</span>
+      </div>
+      <div class="mirror-grid">
+        <a href="https://ghproxy.com/https://github.com/marsma-101/Greenhorn/releases/latest/download/greenhorn-green.zip"
+           class="mirror-btn">
+          <span>镜像 1</span>
+          <span class="badge">gh-proxy</span>
+        </a>
+        <a href="https://ghfast.top/https://github.com/marsma-101/Greenhorn/releases/latest/download/greenhorn-green.zip"
+           class="mirror-btn">
+          <span>镜像 2</span>
+          <span class="badge">ghfast</span>
+        </a>
+      </div>
     </div>
 
-    <div class="footer">
-      <p>支持引擎：PI · Hermes · Claude Code · Codex · OpenCode · Reasonix</p>
-      <p>GitHub: <a href="https://github.com/marsma-101/Greenhorn" target="_blank">github.com/marsma-101/Greenhorn</a></p>
-    </div>
+    <footer class="footer animate-in delay-5">
+      <p class="footer-engines">支持引擎：PI · Hermes · Claude Code · Codex · OpenCode · Reasonix</p>
+      <p class="footer-link">GitHub: <a href="https://github.com/marsma-101/Greenhorn" target="_blank">github.com/marsma-101/Greenhorn</a></p>
+    </footer>
   </div>
 
   <script>

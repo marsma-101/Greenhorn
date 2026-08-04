@@ -2,6 +2,7 @@
 chcp 65001 >nul
 cd /d "%~dp0"
 title GreenHorn - 一键启动
+rem ✅ 已测通（2026-08-04 验收）：start.bat 双模式启动（绿色版直跑 + 源码版安装编译），CRLF 换行铁律
 setlocal enabledelayedexpansion
 
 echo ============================================

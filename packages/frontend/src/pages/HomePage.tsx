@@ -5,6 +5,7 @@ import type { EngineDefinition } from '@greenhorn/shared/constants';
 import { useApp } from '../context/AppContext';
 import { IconLeaf, IconSparkles, IconPlus, IconExternalLink } from '../components/icons';
 import EngineInstallModal from '../components/EngineInstallModal';
+import EngineConfigGuide from '../components/EngineConfigGuide';
 
 interface EngineStatus {
   engineId: string;
@@ -27,7 +28,7 @@ interface EnvStatus {
 
 export default function HomePage() {
   const navigate = useNavigate();
-  const { useSVG } = useApp();
+  const { useSVG, engineConfigs, loadEngineConfig } = useApp();
   const [engines, setEngines] = useState<EngineDefinition[]>(
     ENGINES.map(e => ({ ...e }))
   );
@@ -37,6 +38,7 @@ export default function HomePage() {
   const [showGuide, setShowGuide] = useState(false);
   const [installingEngine, setInstallingEngine] = useState<EngineDefinition | null>(null);
   const [confirmEngine, setConfirmEngine] = useState<EngineDefinition | null>(null);
+  const [configEngine, setConfigEngine] = useState<EngineDefinition | null>(null);
 
   useEffect(() => {
     fetch('/api/engines/status')
@@ -94,9 +96,23 @@ export default function HomePage() {
 
   const handleEngineClick = (engine: EngineDefinition) => {
     if (engine.status === 'ready') {
+      if (engine.requiresApiKey) {
+        const config = engineConfigs[engine.id];
+        if (!config?.apiKey) {
+          setConfigEngine(engine);
+          return;
+        }
+      }
       navigate(`/chat?engine=${engine.id}`);
     } else {
       setConfirmEngine(engine);
+    }
+  };
+
+  const handleConfigured = () => {
+    if (configEngine) {
+      navigate(`/chat?engine=${configEngine.id}`);
+      setConfigEngine(null);
     }
   };
 
@@ -235,6 +251,7 @@ export default function HomePage() {
         {engines.map(engine => {
           const status = getStatusLabel(engine.status);
           const isReady = engine.status === 'ready';
+          const caps = engine.capabilities || [];
           return (
             <div
               key={engine.id}
@@ -272,6 +289,29 @@ export default function HomePage() {
                   <p style={{ color: 'var(--c-text-muted)', fontSize: '0.75rem', marginTop: '0.25rem', lineHeight: 1.5 }}>
                     {engine.description}
                   </p>
+                  {/* Capability tags */}
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '3px', marginTop: '6px' }}>
+                    {caps.slice(0, 4).map(cap => {
+                      const capLabels: Record<string, string> = {
+                        chat: '💬', streaming: '⚡', thinking: '🧠', tools: '🔧',
+                        code: '💻', filesystem: '📁', browser: '🌐', planning: '📋',
+                      };
+                      return (
+                        <span key={cap} style={{
+                          fontSize: '0.625rem',
+                          padding: '1px 5px',
+                          borderRadius: '6px',
+                          background: 'var(--c-bg-hover)',
+                          color: 'var(--c-text-muted)',
+                        }}>
+                          {capLabels[cap] || cap}
+                        </span>
+                      );
+                    })}
+                    {caps.length > 4 && (
+                      <span style={{ fontSize: '0.625rem', color: 'var(--c-text-muted)' }}>+{caps.length - 4}</span>
+                    )}
+                  </div>
                 </div>
                 <span className={status.className} style={{ flexShrink: 0, marginLeft: '8px' }}>
                   {status.text}
@@ -460,6 +500,16 @@ export default function HomePage() {
           engine={installingEngine}
           onClose={() => setInstallingEngine(null)}
           onInstalled={handleEngineInstalled}
+        />
+      )}
+
+      {configEngine && (
+        <EngineConfigGuide
+          engine={configEngine}
+          initialConfig={engineConfigs[configEngine.id]}
+          onClose={() => setConfigEngine(null)}
+          onConfigured={handleConfigured}
+          variant="modal"
         />
       )}
     </div>

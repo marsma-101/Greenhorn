@@ -56,10 +56,16 @@ export default function EngineInstallModal({ engine, onClose, onInstalled }: Eng
           if (!data.source.hasLocal) {
             setInstallMethod('remote');
           }
+        } else {
+          // 后端明确返回失败（如未知引擎）→ 直接显示错误，不无限转圈
+          setStage('error');
+          setErrorMessage(data.message || '无法获取引擎信息');
         }
       })
       .catch(() => {
-        setErrorMessage('无法获取引擎信息');
+        // 网络错误 → 直接显示错误，不无限转圈
+        setStage('error');
+        setErrorMessage('无法获取引擎信息，请检查后端服务是否已启动');
       });
   }, [engine.id]);
 

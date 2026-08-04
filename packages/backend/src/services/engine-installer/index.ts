@@ -13,13 +13,14 @@ export interface EngineSource {
   description: string;
 }
 
+// ✅ 已测通（2026-08-04 验收）：引擎安装器（Hermes/Reasonix/Codex/OpenCode 安装 + 本地源/远程拉取双模式）
+// 引擎仓库地址经 GitHub API 逐仓库验证（2026-08-04）：Hermes→NousResearch/hermes-agent、Reasonix→esengine/DeepSeek-Reasonix
 export const ENGINE_SOURCES: Record<string, EngineSource> = {
   pi: {
     id: 'pi',
     name: 'PI',
-    githubUrls: [
-      'https://github.com/pi-agent/pi-agent.git',
-    ],
+    // PI 是嵌入式引擎，无独立 GitHub 仓库，无需远程拉取（移除 githubUrls）
+    githubUrls: [],
     localSource: 'D:\\program\\pi-agent',
     dependencies: 'pnpm',
     description: '轻量级编程助手',
@@ -28,7 +29,7 @@ export const ENGINE_SOURCES: Record<string, EngineSource> = {
     id: 'hermes',
     name: 'Hermes',
     githubUrls: [
-      'https://github.com/hermes-agent/hermes.git',
+      'https://github.com/NousResearch/hermes-agent.git',
     ],
     localSource: 'D:\\program\\hermes-agent',
     installCmd: 'pip install -e .',
@@ -70,7 +71,7 @@ export const ENGINE_SOURCES: Record<string, EngineSource> = {
     id: 'reasonix',
     name: 'Reasonix',
     githubUrls: [
-      'https://github.com/reasonix/reasonix.git',
+      'https://github.com/esengine/DeepSeek-Reasonix.git',
     ],
     localSource: 'D:\\program\\reasonix',
     dependencies: 'go/npm',
@@ -199,6 +200,18 @@ export class EngineInstaller {
   ): Promise<InstallResult> {
     this.addProgress('cloning', `从 GitHub 拉取 ${source.name} 源码...`, 20);
 
+    // 嵌入式引擎（如 PI）无独立仓库，不应远程拉取
+    if (!source.githubUrls || source.githubUrls.length === 0) {
+      this.addProgress('error', `${source.name} 是嵌入式引擎，无需远程拉取，请选择本地安装模式`, 100);
+      return {
+        success: false,
+        engineId,
+        installPath: targetDir,
+        message: `${source.name} 是嵌入式引擎，无需远程拉取。\n建议操作：\n1. 返回安装方式选择，改用「本地安装」\n2. 若本地无源码，请联系管理员`,
+        progress: this.progress,
+      };
+    }
+
     const mirrorUrls = this.buildMirrorUrls(source.githubUrls[0]);
     let lastError = '';
     let cloned = false;
@@ -210,8 +223,9 @@ export class EngineInstaller {
 
       try {
         this.addProgress('cloning', `尝试 ${sourceName}: ${url}`, 25 + i * 3);
+        // 超时保护：git clone 5 分钟超时（防止仓库不存在/网络挂起导致无限转圈）
         execSync(`git clone --depth 1 "${url}" "${targetDir}"`, {
-          timeout: 15000,
+          timeout: 300000,
           stdio: 'pipe',
           maxBuffer: 10 * 1024 * 1024,
         });
@@ -238,11 +252,13 @@ export class EngineInstaller {
 
     if (!cloned || !existsSync(targetDir) || readdirSync(targetDir).length === 0) {
       this.addProgress('error', `所有下载源均失败`, 100);
+      // 中文错误反馈（修复：clone 失败必须推给前端，不能无限转圈）
       const errorHints = [
         `无法从任何来源拉取 ${source.name} 源码`,
+        `错误详情：${lastError}`,
         `建议操作：`,
-        `1. 检查网络连接是否正常`,
-        `2. 如果在国内网络环境，可能需要配置代理`,
+        `1. 检查网络连接是否正常（当前可能无法访问 GitHub）`,
+        `2. 检查代理是否已开启，或在网络通畅时重试`,
         `3. 尝试手动下载：${source.githubUrls[0]}`,
         `4. 如有本地源码，可使用本地安装模式`,
       ];

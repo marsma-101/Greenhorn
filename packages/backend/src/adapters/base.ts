@@ -7,6 +7,7 @@ import type {
   EngineDefinition,
 } from '@greenhorn/shared';
 
+// ✅ 已测通（2026-08-03 验收）：多引擎适配层基类（S1 全部 6 引擎 adapter 基于此类，标准 EngineChatResponse 输出）
 export abstract class EngineAdapter {
   engineId: string;
   name: string;

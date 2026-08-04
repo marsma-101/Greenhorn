@@ -1,38 +1,28 @@
-import { useState, useEffect, useRef } from 'react';
-import { useSearchParams } from 'react-router-dom';
-import { useApp } from '../context/AppContext';
-import { IconPaperclip, IconBulb, IconLeaf, IconBolt, IconX, IconDocument, IconSparkles } from '../components/icons';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { useSearchParams, useNavigate } from 'react-router-dom';
+import { useApp, type EngineConfig } from '../context/AppContext';
+import {
+  IconPaperclip, IconBulb, IconBolt, IconX, IconDocument,
+  IconSparkles, IconTerminal, IconSearch, IconBrowser,
+  IconCode, IconFolder, IconTool, IconChevronDown, IconCheck
+} from '../components/icons';
 import { ENGINES } from '@greenhorn/shared/constants';
 import type { EngineDefinition, PromptTemplate, Skill } from '@greenhorn/shared';
+import EngineConfigGuide from '../components/EngineConfigGuide';
+import EngineSpecificPanel from '../components/EngineSpecificPanel';
 
-const PROVIDER_NAMES: Record<string, string> = {
-  deepseek: 'DeepSeek',
-  ollama: 'Ollama',
-  tongyi: '通义千问',
-  zhipu: '智谱 GLM',
-  doubao: '豆包',
-  moonshot: 'Kimi',
-  openai: 'OpenAI',
-};
+const THINKING_LEVELS = [
+  { id: 'off', name: '关闭' },
+  { id: 'low', name: '低' },
+  { id: 'medium', name: '中' },
+  { id: 'high', name: '高' },
+];
 
-const PROVIDER_MODELS: Record<string, Array<{ id: string; name: string }>> = {
-  deepseek: [
-    { id: 'deepseek-chat', name: 'DeepSeek V3' },
-    { id: 'deepseek-reasoner', name: 'DeepSeek R1' },
-  ],
-  ollama: [
-    { id: 'qwen3.5:9b', name: 'Qwen3.5 (9B)' },
-    { id: 'llama3.1:8b', name: 'Llama 3.1 (8B)' },
-  ],
-  tongyi: [
-    { id: 'qwen-max', name: 'Qwen Max' },
-    { id: 'qwen-plus', name: 'Qwen Plus' },
-  ],
-  zhipu: [{ id: 'glm-4-plus', name: 'GLM-4 Plus' }],
-  doubao: [{ id: 'doubao-1.5-pro-256k', name: '豆包 Pro' }],
-  moonshot: [{ id: 'moonshot-v1-8k', name: 'Moonshot v1' }],
-  openai: [{ id: 'gpt-4o', name: 'GPT-4o' }],
-};
+const TEMP_PRESETS = [
+  { value: 0.3, label: '精确' },
+  { value: 0.7, label: '平衡' },
+  { value: 1.0, label: '创意' },
+];
 
 const PERSONA_OPTIONS = [
   { id: '', name: '默认' },
@@ -49,17 +39,39 @@ const SAMPLE_QUESTIONS = [
   '用 SQL 实现一个简单的用户表增删改查',
 ];
 
+const CAPABILITY_LABELS: Record<string, { label: string; icon: string; color: string }> = {
+  chat: { label: '对话', icon: '💬', color: '#10b981' },
+  streaming: { label: '流式', icon: '⚡', color: '#f59e0b' },
+  thinking: { label: '思考', icon: '🧠', color: '#8b5cf6' },
+  tools: { label: '工具', icon: '🔧', color: '#3b82f6' },
+  code: { label: '代码', icon: '💻', color: '#06b6d4' },
+  filesystem: { label: '文件', icon: '📁', color: '#84cc16' },
+  browser: { label: '浏览器', icon: '🌐', color: '#ec4899' },
+  planning: { label: '规划', icon: '📋', color: '#f97316' },
+};
+
 export default function ChatPage() {
   const [searchParams] = useSearchParams();
-  const { config, configLoaded, settings, updateSettings, currentSessionId, setCurrentSessionId, createNewSession, refreshSessions, useSVG } = useApp();
+  const navigate = useNavigate();
+  const {
+    config, configLoaded, settings, updateSettings,
+    currentSessionId, setCurrentSessionId,
+    createNewSession, refreshSessions, useSVG,
+    engineConfigs, loadEngineConfig, saveEngineConfig,
+    engineStatuses,
+  } = useApp();
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const abortRef = useRef<AbortController | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Read engine from URL param, default to PI
-  const engineId = searchParams.get('engine') || 'pi';
+  const [engineId, setEngineId] = useState(searchParams.get('engine') || 'pi');
+  const [showEnginePicker, setShowEnginePicker] = useState(false);
+  const [engineConfig, setEngineConfig] = useState<EngineConfig>({ temperature: 0.7, thinkingLevel: 'off' });
+  const [engineStatus, setEngineStatus] = useState<{ installed: boolean; running: boolean } | null>(null);
+
   const currentEngine: EngineDefinition = ENGINES.find(e => e.id === engineId) || ENGINES[0];
+  const capabilities = currentEngine.capabilities || [];
 
   const [input, setInput] = useState('');
   const [messages, setMessages] = useState<Array<{ role: string; content: string }>>([]);
@@ -69,21 +81,48 @@ export default function ChatPage() {
   const [thinkingExpanded, setThinkingExpanded] = useState(false);
   const [typingFast, setTypingFast] = useState(false);
   const [uploadedFiles, setUploadedFiles] = useState<Array<{ name: string; content: string; size: number }>>([]);
-  const [selectedModel, setSelectedModel] = useState(config.model);
-  const [selectedPersona, setSelectedPersona] = useState(() => {
-    const enginePersona = settings.enginePersonas?.[engineId];
-    return enginePersona !== undefined ? enginePersona : (settings.persona || '');
-  });
-  const [templates, setTemplates] = useState<PromptTemplate[]>([]);
-  const [skills, setSkills] = useState<Skill[]>([]);
   const [showTemplatePicker, setShowTemplatePicker] = useState(false);
   const [showSkillsPicker, setShowSkillsPicker] = useState(false);
+  const [showEngineSpecific, setShowEngineSpecific] = useState(false);
+  const [templates, setTemplates] = useState<PromptTemplate[]>([]);
+  const [skills, setSkills] = useState<Skill[]>([]);
   const templateBtnRef = useRef<HTMLButtonElement>(null);
+
+  // Load engine config when engine changes
+  useEffect(() => {
+    loadEngineConfig(engineId).then(cfg => {
+      setEngineConfig(cfg);
+    });
+    const status = engineStatuses.find(s => s.engineId === engineId);
+    setEngineStatus(status ? { installed: status.installed, running: status.running } : null);
+    setMessages([]);
+    setCurrentSessionId(null);
+  }, [engineId, engineStatuses]);
+
+  // Read engine from URL param
+  useEffect(() => {
+    const urlEngine = searchParams.get('engine');
+    if (urlEngine && urlEngine !== engineId) {
+      setEngineId(urlEngine);
+    }
+  }, [searchParams]);
+
+  const switchEngine = useCallback((newEngineId: string) => {
+    setEngineId(newEngineId);
+    setShowEnginePicker(false);
+    navigate(`/chat?engine=${newEngineId}`, { replace: true });
+  }, [navigate]);
+
+  // Persist engine config changes
+  const updateEngineConfig = useCallback(async (patch: Partial<EngineConfig>) => {
+    const newConfig = { ...engineConfig, ...patch };
+    setEngineConfig(newConfig);
+    await saveEngineConfig(engineId, newConfig);
+  }, [engineConfig, engineId, saveEngineConfig]);
 
   // Load messages when session changes
   useEffect(() => {
     if (!currentSessionId) {
-      // Try to restore last session or create new
       (async () => {
         const res = await fetch('/api/sessions');
         const data = await res.json();
@@ -108,27 +147,12 @@ export default function ChatPage() {
       .catch(() => {});
   }, [currentSessionId]);
 
-  // Sync model when config loads
-  useEffect(() => {
-    if (configLoaded) setSelectedModel(config.model);
-  }, [configLoaded, config.model]);
-
-  // Sync persona when settings load or engine changes
-  useEffect(() => {
-    const enginePersona = settings.enginePersonas?.[engineId];
-    setSelectedPersona(enginePersona !== undefined ? enginePersona : (settings.persona || ''));
-  }, [settings.enginePersonas, settings.persona, engineId]);
-
-  // Load prompt templates
+  // Load prompt templates and skills
   useEffect(() => {
     fetch('/api/templates')
       .then(r => r.json())
       .then(data => setTemplates(data.templates || []))
       .catch(() => setTemplates([]));
-  }, []);
-
-  // Load skills
-  useEffect(() => {
     fetch('/api/skills')
       .then(r => r.json())
       .then(data => setSkills((data.skills || []).filter((s: Skill) => s.enabled)))
@@ -142,6 +166,8 @@ export default function ChatPage() {
 
   const isFirstVisit = messages.length === 0;
 
+  const hasCapability = useCallback((cap: string) => capabilities.includes(cap), [capabilities]);
+
   const saveMessageToSession = async (role: string, content: string) => {
     if (!currentSessionId) return;
     try {
@@ -151,14 +177,30 @@ export default function ChatPage() {
         body: JSON.stringify({ message: { role, content } }),
       });
       refreshSessions();
-    } catch (err) {
-      console.error('Failed to save message:', err);
+    } catch {
+      // ignore
     }
   };
 
+  const buildSystemPrompt = useCallback((): string | undefined => {
+    const parts: string[] = [];
+    const persona = engineConfig.persona || settings.enginePersonas?.[engineId] || settings.persona;
+    if (persona) {
+      parts.push(`你是一个${persona}。`);
+    }
+    if (uploadedFiles.length > 0) {
+      const fileContext = uploadedFiles.map(f => {
+        const truncated = f.content.length > 20000 ? f.content.slice(0, 20000) + '...(truncated)' : f.content;
+        return `用户上传了文件 ${f.name}，内容如下：\n---\n${truncated}\n---`;
+      }).join('\n\n');
+      parts.push(fileContext);
+    }
+    return parts.length > 0 ? parts.join('\n\n') : undefined;
+  }, [engineConfig.persona, settings.enginePersonas, settings.persona, uploadedFiles, engineId]);
+
   const handleSend = async (text?: string) => {
     const userMessage = (text || input).trim();
-    if (!userMessage || isStreaming || !configLoaded) return;
+    if (!userMessage || isStreaming) return;
 
     const controller = new AbortController();
     abortRef.current = controller;
@@ -177,32 +219,9 @@ export default function ChatPage() {
       .slice(-10)
       .map(m => ({ role: m.role as 'user' | 'assistant', content: m.content }));
 
-    // Build system prompt based on engine
-    let systemPrompt: string | undefined;
-    if (engineId === 'pi') {
-      if (selectedPersona) {
-        systemPrompt = `你是一个${selectedPersona}。`;
-      }
-      if (uploadedFiles.length > 0) {
-        const fileContext = uploadedFiles.map(f => {
-          const truncated = f.content.length > 20000 ? f.content.slice(0, 20000) + '...(truncated)' : f.content;
-          return `用户上传了文件 ${f.name}，内容如下：\n---\n${truncated}\n---`;
-        }).join('\n\n');
-        systemPrompt = (systemPrompt ? systemPrompt + '\n\n' : '') + fileContext;
-      }
-    } else {
-      // Other engines (Hermes, etc.)
-      if (selectedPersona) {
-        systemPrompt = `你是一个${selectedPersona}。`;
-      }
-      if (uploadedFiles.length > 0) {
-        const fileContext = uploadedFiles.map(f => {
-          const truncated = f.content.length > 20000 ? f.content.slice(0, 20000) + '...(truncated)' : f.content;
-          return `用户上传了文件 ${f.name}，内容如下：\n---\n${truncated}\n---`;
-        }).join('\n\n');
-        systemPrompt = (systemPrompt ? systemPrompt + '\n\n' : '') + fileContext;
-      }
-    }
+    const systemPrompt = buildSystemPrompt();
+    const temperature = engineConfig.temperature ?? 0.7;
+    const thinkingLevel = engineConfig.thinkingLevel ?? 'off';
 
     try {
       const response = await fetch(`/api/engines/${engineId}/chat`, {
@@ -211,9 +230,11 @@ export default function ChatPage() {
         body: JSON.stringify({
           messages: [...history, { role: 'user', content: userMessage }],
           systemPrompt,
-          temperature: 0.7,
+          temperature,
+          maxTokens: temperature > 0.7 ? 8192 : 4096,
           sessionId: currentSessionId || undefined,
           stream: true,
+          thinkingLevel,
         }),
         signal: controller.signal,
       });
@@ -308,8 +329,6 @@ export default function ChatPage() {
     setShowSkillsPicker(false);
   };
 
-  const templateCategories = Array.from(new Set(templates.map(t => t.category))).sort();
-
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
@@ -334,18 +353,12 @@ export default function ChatPage() {
         alert(`文件过大：${file.name}（最大 500KB）`);
         return;
       }
-
       const reader = new FileReader();
       reader.onload = () => {
-        setUploadedFiles(prev => [...prev, {
-          name: file.name,
-          content: reader.result as string,
-          size: file.size,
-        }]);
+        setUploadedFiles(prev => [...prev, { name: file.name, content: reader.result as string, size: file.size }]);
       };
       reader.readAsText(file);
     });
-
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
@@ -354,12 +367,64 @@ export default function ChatPage() {
   };
 
   const hideThinkingBlock = settings.hideThinkingBlock;
-  const currentModels = PROVIDER_MODELS[config.provider] || PROVIDER_MODELS.deepseek;
-  const engineName = PROVIDER_NAMES[config.provider] || config.provider;
+
+  const statusText = engineStatus?.installed
+    ? (engineStatus.running ? '运行中' : '已就绪')
+    : '未安装';
+  const statusColor = engineStatus?.installed
+    ? (engineStatus.running ? '#10b981' : '#6b7280')
+    : '#ef4444';
+
+  // Check if engine requires API key but has no config
+  const needsApiKey = currentEngine.requiresApiKey && !engineConfig?.apiKey;
+  const isConfiguring = needsApiKey;
+
+  if (isConfiguring) {
+    return (
+      <div className="flex flex-col h-full paper-card m-2 rounded-2xl overflow-hidden">
+        <div className="flex items-center justify-between px-4 py-2 border-b border-[oklch(90%_0.01_145)] dark:border-[oklch(25%_0.01_145)] bg-[oklch(99%_0.003_145)] dark:bg-[oklch(20%_0.003_145)] flex-shrink-0">
+          <div className="flex items-center gap-2">
+            <span style={{ fontSize: '1.25rem' }}>{currentEngine.emoji}</span>
+            <div>
+              <div style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--c-text)' }}>
+                {currentEngine.name}
+              </div>
+              <div style={{ fontSize: '0.6875rem', color: 'var(--c-text-soft)' }}>
+                配置 API Key 后才能使用
+              </div>
+            </div>
+          </div>
+          <button
+            onClick={() => navigate('/')}
+            style={{
+              padding: '2px 8px',
+              borderRadius: 'var(--r-sm)',
+              fontSize: '0.75rem',
+              border: '1px solid var(--c-border-soft)',
+              background: 'transparent',
+              color: 'var(--c-text-soft)',
+              cursor: 'pointer',
+            }}
+          >
+            返回首页
+          </button>
+        </div>
+        <div className="flex-1 overflow-y-auto px-6 py-8 flex items-center justify-center">
+          <EngineConfigGuide
+            engine={currentEngine}
+            initialConfig={engineConfig}
+            onClose={() => navigate('/')}
+            onConfigured={() => { /* config saved, messages empty, engine ready */ }}
+            variant="inline"
+          />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col h-full paper-card m-2 rounded-2xl overflow-hidden">
-      {/* Agent badge header */}
+      {/* Header with engine switcher */}
       <div className="flex items-center justify-between px-4 py-2 border-b border-[oklch(90%_0.01_145)] dark:border-[oklch(25%_0.01_145)] bg-[oklch(99%_0.003_145)] dark:bg-[oklch(20%_0.003_145)] flex-shrink-0">
         <div className="flex items-center gap-2">
           <span style={{ fontSize: '1.25rem' }}>{currentEngine.emoji}</span>
@@ -371,47 +436,156 @@ export default function ChatPage() {
               {currentEngine.description}
             </div>
           </div>
-          <button
-            onClick={() => alert('多智能体切换开发中...')}
-            style={{
+
+          {/* Engine status badge */}
+          {engineStatus && (
+            <span style={{
               marginLeft: '8px',
               padding: '2px 8px',
-              borderRadius: 'var(--r-sm)',
-              fontSize: '0.75rem',
-              border: '1px solid var(--c-border-soft)',
-              background: 'transparent',
-              color: 'var(--c-text-soft)',
-              cursor: 'pointer',
-              transition: 'all var(--dur-fast)',
-            }}
-            onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--c-accent-dim)'; e.currentTarget.style.color = 'var(--c-accent)'; }}
-            onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--c-border-soft)'; e.currentTarget.style.color = 'var(--c-text-soft)'; }}
-          >
-            切换 ▾
-          </button>
+              borderRadius: '12px',
+              fontSize: '0.6875rem',
+              background: engineStatus?.installed ? '#d1fae5' : '#fee2e2',
+              color: statusColor,
+              fontWeight: 500,
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '4px',
+            }}>
+              <span style={{ width: 6, height: 6, borderRadius: '50%', background: statusColor, display: 'inline-block' }} />
+              {statusText}
+            </span>
+          )}
+
+          {/* Engine capabilities */}
+          <div style={{ display: 'flex', gap: '4px', marginLeft: '8px' }}>
+            {capabilities.slice(0, 5).map(cap => {
+              const info = CAPABILITY_LABELS[cap];
+              if (!info) return null;
+              return (
+                <span key={cap} title={info.label} style={{
+                  fontSize: '0.625rem',
+                  padding: '1px 6px',
+                  borderRadius: '8px',
+                  background: info.color + '18',
+                  color: info.color,
+                  fontWeight: 500,
+                }}>
+                  {info.icon} {info.label}
+                </span>
+              );
+            })}
+          </div>
+
+          {/* Engine switcher */}
+          <div style={{ position: 'relative', marginLeft: '8px' }}>
+            <button
+              onClick={() => setShowEnginePicker(v => !v)}
+              style={{
+                padding: '2px 8px',
+                borderRadius: 'var(--r-sm)',
+                fontSize: '0.75rem',
+                border: '1px solid var(--c-border-soft)',
+                background: showEnginePicker ? 'var(--c-accent-soft)' : 'transparent',
+                color: showEnginePicker ? 'var(--c-accent)' : 'var(--c-text-soft)',
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '4px',
+                transition: 'all var(--dur-fast)',
+              }}
+            >
+              切换 <IconChevronDown size={12} />
+            </button>
+            {showEnginePicker && (
+              <div
+                className="frosted-panel"
+                style={{
+                  position: 'absolute',
+                  top: 'calc(100% + 4px)',
+                  left: 0,
+                  minWidth: 200,
+                  borderRadius: 'var(--r-lg)',
+                  border: '1px solid var(--c-border)',
+                  padding: '4px',
+                  zIndex: 30,
+                  background: 'var(--c-surface-1)',
+                  boxShadow: 'var(--shadow-lg)',
+                }}
+              >
+                {ENGINES.map(e => {
+                  const status = engineStatuses.find(s => s.engineId === e.id);
+                  const isActive = e.id === engineId;
+                  return (
+                    <button
+                      key={e.id}
+                      onClick={() => switchEngine(e.id)}
+                      style={{
+                        width: '100%',
+                        padding: '6px 10px',
+                        borderRadius: 'var(--r-sm)',
+                        fontSize: '0.8125rem',
+                        color: 'var(--c-text)',
+                        background: isActive ? 'var(--c-accent-soft)' : 'transparent',
+                        border: 'none',
+                        cursor: 'pointer',
+                        textAlign: 'left',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                        fontWeight: isActive ? 600 : 400,
+                      }}
+                      onMouseEnter={ev => { if (!isActive) ev.currentTarget.style.backgroundColor = 'var(--c-bg-session-item)'; }}
+                      onMouseLeave={ev => { if (!isActive) ev.currentTarget.style.backgroundColor = 'transparent'; }}
+                    >
+                      <span>{e.emoji}</span>
+                      <span style={{ flex: 1 }}>{e.name}</span>
+                      {status?.installed && (
+                        <IconCheck size={12} />
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
         </div>
+
+        {/* Engine-specific indicator */}
+        {capabilities.includes('browser') && (
+          <span style={{
+            fontSize: '0.6875rem',
+            color: '#ec4899',
+            padding: '2px 8px',
+            borderRadius: '8px',
+            background: '#ec489918',
+            fontWeight: 500,
+          }}>
+            ⚡ Pro
+          </span>
+        )}
       </div>
 
-      {/* Messages — paper style */}
+      {/* Messages */}
       <div className={`flex-1 overflow-y-auto px-6 py-8 ${typingFast ? 'typing-fast' : ''}`}>
         <div className="max-w-3xl mx-auto">
           {isFirstVisit && (
             <div className="text-center py-20">
               <div style={{ fontSize: '3rem', marginBottom: '16px' }}>
-                {useSVG ? <IconLeaf size={48} /> : '🍃'}
+                {useSVG ? <IconBulb size={48} /> : currentEngine.emoji}
               </div>
               <h2 className="text-xl font-semibold mb-2 text-[oklch(30%_0.02_145)] dark:text-[oklch(85%_0.02_145)]">
-                开始对话吧
+                与 {currentEngine.name} 开始对话
               </h2>
               <p className="text-sm text-[oklch(55%_0.015_145)] mb-8">
-                {configLoaded ? `${engineName} · ${currentModels.find(m => m.id === selectedModel)?.name || selectedModel}` : '正在加载配置...'}
+                {engineConfig.model ? `模型：${engineConfig.model}` : '选择一个模型开始'}
+                {engineConfig.persona ? ` · ${engineConfig.persona.split('，')[0]}` : ''}
               </p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-lg mx-auto">
                 {SAMPLE_QUESTIONS.map((q, i) => (
                   <button
                     key={i}
                     onClick={() => handleSend(q)}
-                    disabled={isStreaming || !configLoaded}
+                    disabled={isStreaming}
                     className="px-4 py-3 rounded-2xl border border-[oklch(88%_0.01_145)] dark:border-[oklch(28%_0.01_145)] text-left text-sm hover:border-[oklch(70%_0.08_145)] dark:hover:border-[oklch(40%_0.08_145)] hover:shadow-md transition-all disabled:opacity-50 text-[oklch(35%_0.02_145)] dark:text-[oklch(80%_0.02_145)] bg-[oklch(98%_0.003_145)] dark:bg-[oklch(19%_0.003_145)]"
                   >
                     {q}
@@ -437,26 +611,18 @@ export default function ChatPage() {
             </div>
           ))}
 
-          {!hideThinkingBlock && showThinking && thinkingContent && (
+          {/* Thinking block */}
+          {!hideThinkingBlock && showThinking && thinkingContent && hasCapability('thinking') && (
             <div className="flex justify-start mb-4">
               <div className="thinking-card" style={{ maxWidth: '80%' }}>
                 <button
                   onClick={() => setThinkingExpanded(!thinkingExpanded)}
                   style={{
-                    width: '100%',
-                    padding: '8px 16px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    fontSize: '0.75rem',
-                    color: 'var(--c-text-muted)',
-                    transition: 'color var(--dur-fast)',
-                    background: 'transparent',
-                    border: 'none',
-                    cursor: 'pointer',
+                    width: '100%', padding: '8px 16px',
+                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                    fontSize: '0.75rem', color: 'var(--c-text-muted)',
+                    transition: 'color var(--dur-fast)', background: 'transparent', border: 'none', cursor: 'pointer',
                   }}
-                  onMouseEnter={e => e.currentTarget.style.color = 'var(--c-text-soft)'}
-                  onMouseLeave={e => e.currentTarget.style.color = 'var(--c-text-muted)'}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     {useSVG ? <IconBulb size={16} /> : <span>🧠</span>}
@@ -467,12 +633,7 @@ export default function ChatPage() {
                 </button>
                 {thinkingExpanded && (
                   <div style={{ padding: '0 16px 12px' }}>
-                    <p style={{
-                      fontSize: '0.75rem',
-                      color: 'var(--c-text-soft)',
-                      whiteSpace: 'pre-wrap',
-                      lineHeight: 1.6,
-                    }}>
+                    <p style={{ fontSize: '0.75rem', color: 'var(--c-text-soft)', whiteSpace: 'pre-wrap', lineHeight: 1.6 }}>
                       {thinkingContent}
                     </p>
                   </div>
@@ -481,7 +642,7 @@ export default function ChatPage() {
             </div>
           )}
 
-          {!hideThinkingBlock && showThinking && !thinkingContent && (
+          {!hideThinkingBlock && showThinking && !thinkingContent && hasCapability('thinking') && (
             <div className="flex justify-start mb-4">
               <div className="thinking-card" style={{ padding: '12px 16px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.75rem', color: 'var(--c-text-muted)' }}>
@@ -497,7 +658,7 @@ export default function ChatPage() {
         </div>
       </div>
 
-      {/* Input area */}
+      {/* Input area with capability-driven toolbar */}
       <div className="border-t border-[oklch(90%_0.01_145)] dark:border-[oklch(25%_0.01_145)] px-4 py-3 flex-shrink-0">
         {/* File preview */}
         {uploadedFiles.length > 0 && (
@@ -516,64 +677,107 @@ export default function ChatPage() {
           </div>
         )}
 
-        {/* Toolbar: file, model, persona, speed */}
+        {/* Capability-driven toolbar */}
         <div className="max-w-3xl mx-auto mb-2 flex items-center gap-2 flex-wrap">
-          <input
-            type="file"
-            ref={fileInputRef}
-            onChange={handleFileSelect}
-            multiple
-            accept=".txt,.md,.json,.js,.ts,.py,.html,.css,.xml,.yaml,.yml,.csv"
-            className="hidden"
-          />
-          <button
-            onClick={() => fileInputRef.current?.click()}
-            disabled={isStreaming}
-            style={{
-              padding: '4px 10px',
-              borderRadius: 'var(--r-sm)',
-              fontSize: '0.75rem',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '4px',
-              border: '1px solid var(--c-border-soft)',
-              color: 'var(--c-text-soft)',
-              transition: 'border-color var(--dur-fast), color var(--dur-fast)',
-              background: 'transparent',
-              cursor: 'pointer',
-              opacity: isStreaming ? 0.5 : 1,
-            }}
-            onMouseEnter={e => { if (!isStreaming) { e.currentTarget.style.borderColor = 'var(--c-accent-dim)'; e.currentTarget.style.color = 'var(--c-accent)'; } }}
-            onMouseLeave={e => { if (!isStreaming) { e.currentTarget.style.borderColor = 'var(--c-border-soft)'; e.currentTarget.style.color = 'var(--c-text-soft)'; } }}
-            title="选择文件"
-          >
-            {useSVG ? <IconPaperclip size={14} /> : <span>📎</span>}
-            文件
-          </button>
+          {/* File upload - only for engines with filesystem or code capability */}
+          {hasCapability('filesystem') && (
+            <>
+              <input
+                type="file" ref={fileInputRef} onChange={handleFileSelect} multiple
+                accept=".txt,.md,.json,.js,.ts,.py,.html,.css,.xml,.yaml,.yml,.csv"
+                className="hidden"
+              />
+              <button
+                onClick={() => fileInputRef.current?.click()} disabled={isStreaming}
+                style={{
+                  padding: '4px 10px', borderRadius: 'var(--r-sm)', fontSize: '0.75rem',
+                  display: 'inline-flex', alignItems: 'center', gap: '4px',
+                  border: '1px solid var(--c-border-soft)', color: 'var(--c-text-soft)',
+                  transition: 'border-color var(--dur-fast), color var(--dur-fast)',
+                  background: 'transparent', cursor: 'pointer', opacity: isStreaming ? 0.5 : 1,
+                }}
+                onMouseEnter={e => { if (!isStreaming) { e.currentTarget.style.borderColor = 'var(--c-accent-dim)'; e.currentTarget.style.color = 'var(--c-accent)'; } }}
+                onMouseLeave={e => { if (!isStreaming) { e.currentTarget.style.borderColor = 'var(--c-border-soft)'; e.currentTarget.style.color = 'var(--c-text-soft)'; } }}
+                title="选择文件"
+              >
+                {useSVG ? <IconPaperclip size={14} /> : <span>📎</span>}
+                文件
+              </button>
+            </>
+          )}
 
-          {/* Model dropdown */}
+          {/* Terminal button - code capability */}
+          {hasCapability('code') && (
+            <button disabled={isStreaming}
+              style={{
+                padding: '4px 10px', borderRadius: 'var(--r-sm)', fontSize: '0.75rem',
+                display: 'inline-flex', alignItems: 'center', gap: '4px',
+                border: '1px solid var(--c-border-soft)', color: 'var(--c-text-soft)',
+                background: 'transparent', cursor: 'pointer', opacity: isStreaming ? 0.5 : 1,
+              }}
+              title="终端"
+            >
+              {useSVG ? <IconTerminal size={14} /> : <span>💻</span>}
+              终端
+            </button>
+          )}
+
+          {/* Browser button - browser capability */}
+          {hasCapability('browser') && (
+            <button disabled={isStreaming}
+              style={{
+                padding: '4px 10px', borderRadius: 'var(--r-sm)', fontSize: '0.75rem',
+                display: 'inline-flex', alignItems: 'center', gap: '4px',
+                border: '1px solid var(--c-border-soft)', color: 'var(--c-text-soft)',
+                background: 'transparent', cursor: 'pointer', opacity: isStreaming ? 0.5 : 1,
+              }}
+              title="浏览器控制"
+            >
+              {useSVG ? <IconBrowser size={14} /> : <span>🌐</span>}
+              浏览器
+            </button>
+          )}
+
+          {/* Search button - planning capability */}
+          {hasCapability('planning') && (
+            <button disabled={isStreaming}
+              style={{
+                padding: '4px 10px', borderRadius: 'var(--r-sm)', fontSize: '0.75rem',
+                display: 'inline-flex', alignItems: 'center', gap: '4px',
+                border: '1px solid var(--c-border-soft)', color: 'var(--c-text-soft)',
+                background: 'transparent', cursor: 'pointer', opacity: isStreaming ? 0.5 : 1,
+              }}
+              title="联网搜索"
+            >
+              {useSVG ? <IconSearch size={14} /> : <span>🔍</span>}
+              搜索
+            </button>
+          )}
+
+          {/* Separator */}
+          <div style={{ width: 1, height: 20, background: 'var(--c-border-soft)', margin: '0 4px' }} />
+
+          {/* Model selector */}
           <select
-            value={selectedModel}
-            onChange={e => setSelectedModel(e.target.value)}
-            disabled={!configLoaded}
+            value={engineConfig.model || ''}
+            onChange={e => updateEngineConfig({ model: e.target.value })}
+            disabled={isStreaming}
             className="ui-select"
             style={{ padding: '4px 10px', fontSize: '0.75rem', width: 'auto', cursor: 'pointer' }}
           >
-            {currentModels.map(m => (
-              <option key={m.id} value={m.id}>{m.name}</option>
-            ))}
+            <option value="">默认模型</option>
+            {config.model && (
+              <option value={config.model}>{config.model}</option>
+            )}
+            {engineConfig.provider && engineConfig.model && engineConfig.model !== config.model && (
+              <option value={engineConfig.model}>{engineConfig.model}</option>
+            )}
           </select>
 
-          {/* Persona dropdown */}
+          {/* Persona selector */}
           <select
-            value={selectedPersona}
-            onChange={e => {
-              const val = e.target.value;
-              setSelectedPersona(val);
-              updateSettings({
-                enginePersonas: { ...settings.enginePersonas, [engineId]: val },
-              });
-            }}
+            value={engineConfig.persona || ''}
+            onChange={e => updateEngineConfig({ persona: e.target.value })}
             className="ui-select"
             style={{ padding: '4px 10px', fontSize: '0.75rem', width: 'auto', cursor: 'pointer' }}
           >
@@ -582,21 +786,58 @@ export default function ChatPage() {
             ))}
           </select>
 
+          {/* Temperature control */}
+          <div style={{
+            display: 'inline-flex', alignItems: 'center', gap: '4px',
+            padding: '4px 8px', borderRadius: 'var(--r-sm)',
+            border: '1px solid var(--c-border-soft)', fontSize: '0.75rem',
+            color: 'var(--c-text-soft)',
+          }}>
+            <span>🌡️</span>
+            {TEMP_PRESETS.map(t => (
+              <button
+                key={t.value}
+                onClick={() => updateEngineConfig({ temperature: t.value })}
+                disabled={isStreaming}
+                style={{
+                  padding: '1px 6px', borderRadius: '4px', fontSize: '0.6875rem',
+                  border: 'none', cursor: 'pointer',
+                  background: engineConfig.temperature === t.value ? 'var(--c-accent-soft)' : 'transparent',
+                  color: engineConfig.temperature === t.value ? 'var(--c-accent)' : 'var(--c-text-soft)',
+                  fontWeight: engineConfig.temperature === t.value ? 600 : 400,
+                }}
+              >
+                {t.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Thinking level */}
+          {hasCapability('thinking') && (
+            <select
+              value={engineConfig.thinkingLevel || 'off'}
+              onChange={e => updateEngineConfig({ thinkingLevel: e.target.value as any })}
+              disabled={isStreaming}
+              className="ui-select"
+              style={{ padding: '4px 10px', fontSize: '0.75rem', width: 'auto', cursor: 'pointer' }}
+              title="思考深度"
+            >
+              {THINKING_LEVELS.map(l => (
+                <option key={l.id} value={l.id}>思考: {l.name}</option>
+              ))}
+            </select>
+          )}
+
           {/* Speed toggle */}
           <button
             onClick={() => setTypingFast(!typingFast)}
             style={{
-              padding: '4px 10px',
-              borderRadius: 'var(--r-sm)',
-              fontSize: '0.75rem',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '4px',
+              padding: '4px 10px', borderRadius: 'var(--r-sm)', fontSize: '0.75rem',
+              display: 'inline-flex', alignItems: 'center', gap: '4px',
               border: `1px solid ${typingFast ? 'var(--c-accent-dim)' : 'var(--c-border-soft)'}`,
               background: typingFast ? 'var(--c-accent-soft)' : 'transparent',
               color: typingFast ? 'var(--c-accent)' : 'var(--c-text-soft)',
-              transition: 'all var(--dur-fast)',
-              cursor: 'pointer',
+              transition: 'all var(--dur-fast)', cursor: 'pointer',
             }}
             title="加速输出"
           >
@@ -608,21 +849,14 @@ export default function ChatPage() {
           <div style={{ position: 'relative' }}>
             <button
               ref={templateBtnRef}
-              onClick={() => setShowTemplatePicker(v => !v)}
-              disabled={isStreaming}
+              onClick={() => setShowTemplatePicker(v => !v)} disabled={isStreaming}
               style={{
-                padding: '4px 10px',
-                borderRadius: 'var(--r-sm)',
-                fontSize: '0.75rem',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '4px',
+                padding: '4px 10px', borderRadius: 'var(--r-sm)', fontSize: '0.75rem',
+                display: 'inline-flex', alignItems: 'center', gap: '4px',
                 border: `1px solid ${showTemplatePicker ? 'var(--c-accent-dim)' : 'var(--c-border-soft)'}`,
                 background: showTemplatePicker ? 'var(--c-accent-soft)' : 'transparent',
                 color: showTemplatePicker ? 'var(--c-accent)' : 'var(--c-text-soft)',
-                transition: 'all var(--dur-fast)',
-                cursor: 'pointer',
-                opacity: isStreaming ? 0.5 : 1,
+                transition: 'all var(--dur-fast)', cursor: 'pointer', opacity: isStreaming ? 0.5 : 1,
               }}
               title="插入提示词模板"
             >
@@ -633,46 +867,30 @@ export default function ChatPage() {
               <div
                 className="frosted-panel"
                 style={{
-                  position: 'absolute',
-                  bottom: 'calc(100% + 8px)',
-                  left: 0,
-                  width: 280,
-                  maxHeight: 320,
-                  overflow: 'auto',
-                  borderRadius: 'var(--r-lg)',
-                  border: '1px solid var(--c-border)',
-                  padding: '8px',
-                  zIndex: 30,
+                  position: 'absolute', bottom: 'calc(100% + 8px)', left: 0,
+                  width: 280, maxHeight: 320, overflow: 'auto',
+                  borderRadius: 'var(--r-lg)', border: '1px solid var(--c-border)',
+                  padding: '8px', zIndex: 30,
                 }}
               >
                 {templates.length === 0 ? (
                   <div style={{ fontSize: '0.8125rem', color: 'var(--c-text-soft)', padding: '12px' }}>
-                    暂无模板，前往“提示词”页面创建
+                    暂无模板
                   </div>
                 ) : (
-                  templateCategories.map(cat => (
+                  Array.from(new Set(templates.map(t => t.category))).sort().map(cat => (
                     <div key={cat} style={{ marginBottom: 8 }}>
                       <div style={{ fontSize: '0.75rem', color: 'var(--c-text-very-soft)', padding: '4px 8px' }}>{cat}</div>
                       {templates.filter(t => t.category === cat).map(t => (
-                        <button
-                          key={t.id}
-                          onClick={() => insertTemplate(t)}
+                        <button key={t.id} onClick={() => insertTemplate(t)}
                           style={{
-                            width: '100%',
-                            textAlign: 'left',
-                            padding: '6px 8px',
-                            borderRadius: 'var(--r-sm)',
-                            fontSize: '0.8125rem',
-                            color: 'var(--c-text)',
-                            background: 'transparent',
-                            border: 'none',
-                            cursor: 'pointer',
+                            width: '100%', textAlign: 'left', padding: '6px 8px',
+                            borderRadius: 'var(--r-sm)', fontSize: '0.8125rem',
+                            color: 'var(--c-text)', background: 'transparent', border: 'none', cursor: 'pointer',
                           }}
                           onMouseEnter={e => e.currentTarget.style.backgroundColor = 'var(--c-bg-session-item)'}
                           onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}
-                        >
-                          {t.name}
-                        </button>
+                        >{t.name}</button>
                       ))}
                     </div>
                   ))
@@ -684,21 +902,14 @@ export default function ChatPage() {
           {/* Skills picker */}
           <div style={{ position: 'relative' }}>
             <button
-              onClick={() => setShowSkillsPicker(v => !v)}
-              disabled={isStreaming}
+              onClick={() => setShowSkillsPicker(v => !v)} disabled={isStreaming}
               style={{
-                padding: '4px 10px',
-                borderRadius: 'var(--r-sm)',
-                fontSize: '0.75rem',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '4px',
+                padding: '4px 10px', borderRadius: 'var(--r-sm)', fontSize: '0.75rem',
+                display: 'inline-flex', alignItems: 'center', gap: '4px',
                 border: `1px solid ${showSkillsPicker ? 'var(--c-accent-dim)' : 'var(--c-border-soft)'}`,
                 background: showSkillsPicker ? 'var(--c-accent-soft)' : 'transparent',
                 color: showSkillsPicker ? 'var(--c-accent)' : 'var(--c-text-soft)',
-                transition: 'all var(--dur-fast)',
-                cursor: 'pointer',
-                opacity: isStreaming ? 0.5 : 1,
+                transition: 'all var(--dur-fast)', cursor: 'pointer', opacity: isStreaming ? 0.5 : 1,
               }}
               title="插入技能"
             >
@@ -709,47 +920,31 @@ export default function ChatPage() {
               <div
                 className="frosted-panel"
                 style={{
-                  position: 'absolute',
-                  bottom: 'calc(100% + 8px)',
-                  left: 0,
-                  width: 280,
-                  maxHeight: 320,
-                  overflow: 'auto',
-                  borderRadius: 'var(--r-lg)',
-                  border: '1px solid var(--c-border)',
-                  padding: '8px',
-                  zIndex: 30,
+                  position: 'absolute', bottom: 'calc(100% + 8px)', left: 0,
+                  width: 280, maxHeight: 320, overflow: 'auto',
+                  borderRadius: 'var(--r-lg)', border: '1px solid var(--c-border)',
+                  padding: '8px', zIndex: 30,
                 }}
               >
                 {skills.length === 0 ? (
                   <div style={{ fontSize: '0.8125rem', color: 'var(--c-text-soft)', padding: '12px' }}>
-                    暂无技能，前往“技能”页面创建
+                    暂无技能
                   </div>
                 ) : (
                   skills.map(sk => (
-                    <button
-                      key={sk.id}
-                      onClick={() => insertSkill(sk)}
+                    <button key={sk.id} onClick={() => insertSkill(sk)}
                       style={{
-                        width: '100%',
-                        textAlign: 'left',
-                        padding: '6px 8px',
-                        borderRadius: 'var(--r-sm)',
-                        fontSize: '0.8125rem',
-                        color: 'var(--c-text)',
-                        background: 'transparent',
-                        border: 'none',
-                        cursor: 'pointer',
-                        marginBottom: '4px',
+                        width: '100%', textAlign: 'left', padding: '6px 8px',
+                        borderRadius: 'var(--r-sm)', fontSize: '0.8125rem',
+                        color: 'var(--c-text)', background: 'transparent', border: 'none',
+                        cursor: 'pointer', marginBottom: '4px',
                       }}
                       onMouseEnter={e => e.currentTarget.style.backgroundColor = 'var(--c-bg-session-item)'}
                       onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}
                     >
                       <div style={{ fontWeight: 600 }}>{sk.name}</div>
                       {sk.description && (
-                        <div style={{ fontSize: '0.75rem', color: 'var(--c-text-soft)', marginTop: 2 }}>
-                          {sk.description}
-                        </div>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--c-text-soft)', marginTop: 2 }}>{sk.description}</div>
                       )}
                     </button>
                   ))
@@ -757,46 +952,63 @@ export default function ChatPage() {
               </div>
             )}
           </div>
+
+          {/* Engine-specific panel toggle */}
+          {(currentEngine.id === 'hermes' || currentEngine.id === 'codex' || currentEngine.id === 'reasonix') && (
+            <button
+              onClick={() => setShowEngineSpecific(v => !v)}
+              style={{
+                padding: '4px 10px', borderRadius: 'var(--r-sm)', fontSize: '0.75rem',
+                display: 'inline-flex', alignItems: 'center', gap: '4px',
+                border: `1px solid ${showEngineSpecific ? 'var(--c-accent-dim)' : 'var(--c-border-soft)'}`,
+                background: showEngineSpecific ? 'var(--c-accent-soft)' : 'transparent',
+                color: showEngineSpecific ? 'var(--c-accent)' : 'var(--c-text-soft)',
+                transition: 'all var(--dur-fast)', cursor: 'pointer',
+              }}
+              title="引擎专属设置"
+            >
+              {useSVG ? <IconTool size={14} /> : <span>⚙️</span>}
+              引擎设置
+            </button>
+          )}
         </div>
+
+        {/* Engine-specific panel */}
+        {showEngineSpecific && (currentEngine.id === 'hermes' || currentEngine.id === 'codex' || currentEngine.id === 'reasonix') && (
+          <div className="max-w-3xl mx-auto mb-2">
+            <EngineSpecificPanel
+              engine={currentEngine}
+              engineConfig={engineConfig}
+              onConfigChange={updateEngineConfig}
+              onClose={() => setShowEngineSpecific(false)}
+            />
+          </div>
+        )}
 
         {/* Input row */}
         <div className="flex gap-2 max-w-3xl mx-auto">
           <input
-            type="text"
-            value={input}
-            onChange={e => setInput(e.target.value)}
+            type="text" value={input} onChange={e => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder={configLoaded ? '输入你的问题...' : '正在加载配置...'}
+            placeholder={`向 ${currentEngine.name} 提问...`}
             className="input-glow"
             style={{
-              flex: 1,
-              padding: '10px 16px',
-              borderRadius: 'var(--r-md)',
-              border: '1px solid var(--c-border-soft)',
-              background: 'var(--c-surface-1)',
-              fontSize: '0.875rem',
-              outline: 'none',
-              color: 'var(--c-text)',
+              flex: 1, padding: '10px 16px', borderRadius: 'var(--r-md)',
+              border: '1px solid var(--c-border-soft)', background: 'var(--c-surface-1)',
+              fontSize: '0.875rem', outline: 'none', color: 'var(--c-text)',
             }}
-            disabled={isStreaming || !configLoaded}
+            disabled={isStreaming}
           />
           <button
             onClick={isStreaming ? handleStop : () => handleSend()}
             disabled={!input.trim() && !isStreaming}
             style={{
-              padding: '10px 24px',
-              borderRadius: 'var(--r-md)',
-              fontSize: '0.875rem',
-              fontWeight: 500,
-              border: 'none',
-              cursor: 'pointer',
-              color: '#fff',
+              padding: '10px 24px', borderRadius: 'var(--r-md)', fontSize: '0.875rem',
+              fontWeight: 500, border: 'none', cursor: 'pointer', color: '#fff',
               background: isStreaming ? 'var(--c-danger)' : 'var(--c-accent)',
               opacity: (!input.trim() && !isStreaming) ? 0.4 : 1,
               transition: 'opacity var(--dur-fast)',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '6px',
+              display: 'inline-flex', alignItems: 'center', gap: '6px',
             }}
           >
             {isStreaming ? (
