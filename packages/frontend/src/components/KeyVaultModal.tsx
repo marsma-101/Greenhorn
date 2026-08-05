@@ -1,3 +1,4 @@
+// ✅ 已确认（2026-08-05 PM+用户验收）：不可误改
 import { useState, useEffect } from 'react';
 
 interface KeyVaultProvider {

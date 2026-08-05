@@ -5,6 +5,7 @@
  * 支持 Ollama（本地无需 Key）和各类云端模型
  * M1 先验证 Ollama 链路，再扩展其他供应商
  */
+// ✅ 已确认（2026-08-05 PM+用户验收）：不可误改
 import type { ChatEvent } from '@greenhorn/shared/types/adapter';
 
 interface ChatOptions {

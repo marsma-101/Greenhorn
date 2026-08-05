@@ -3,6 +3,7 @@
  * 将各模型供应商的 API Key 集中存储在本地文件（~/.greenhorn/keyvault.json）
  * 该目录位于用户主目录，天然不会进入 git 仓库，避免密钥泄露
  */
+// ✅ 已确认（2026-08-05 PM+用户验收）：不可误改
 import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'fs';
 import path from 'path';
 import os from 'os';

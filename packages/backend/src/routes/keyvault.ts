@@ -2,6 +2,7 @@
  * 密钥管理 API 路由
  * 提供供应商密钥的查询、设置、删除接口，配合前端「密钥管理」页面使用
  */
+// ✅ 已确认（2026-08-05 PM+用户验收）：不可误改
 import { Router, Request, Response } from 'express';
 import { MODEL_PROVIDERS } from './model-providers';
 import { getKey, setKey, deleteKey, maskKey } from '../services/keyvault';

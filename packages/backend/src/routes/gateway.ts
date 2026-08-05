@@ -2,6 +2,7 @@
  * 统一模型网关 API 路由
  * 提供 OpenAI 兼容的 /v1/chat/completions 代理与模型列表接口
  */
+// ✅ 已确认（2026-08-05 PM+用户验收）：不可误改
 import { Router, Request, Response } from 'express';
 import { proxyChatCompletions, listGatewayModels } from '../services/gateway';
 

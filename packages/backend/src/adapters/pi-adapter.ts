@@ -6,6 +6,7 @@ import type {
   EngineDefinition,
 } from '@greenhorn/shared';
 
+// ✅ 已确认（2026-08-05 PM+用户验收）：不可误改（P0-3 思维链修复 + undici chunk 解码修复）
 export class PIAdapter extends EngineAdapter {
   constructor(config: EngineDefinition) {
     super(config);

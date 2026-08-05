@@ -14,6 +14,7 @@ export interface EngineSource {
 }
 
 // ✅ 已测通（2026-08-04 验收）：引擎安装器（Hermes/Reasonix/Codex/OpenCode 安装 + 本地源/远程拉取双模式）
+// ✅ 已确认（2026-08-05 PM+用户验收）：不可误改
 // 引擎仓库地址经 GitHub API 逐仓库验证（2026-08-04）：Hermes→NousResearch/hermes-agent、Reasonix→esengine/DeepSeek-Reasonix
 export const ENGINE_SOURCES: Record<string, EngineSource> = {
   pi: {

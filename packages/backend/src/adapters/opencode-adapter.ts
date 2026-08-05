@@ -13,6 +13,7 @@ import { findGreenHornRoot } from '../services/ai-agent-manager';
 const OPENCODE_DEFAULT_PORT = 4000;
 
 // ✅ 已测通（2026-08-04 线 C 验收）：OpenCode v1.18 Server API（POST /session + POST /session/:id/message）
+// ✅ 已确认（2026-08-05 PM+用户验收）：不可误改
 // 免费模型走 OpenCode Zen（opencode/*-free），无需任何 API Key，零 Key 对话验证通过
 export class OpenCodeAdapter extends EngineAdapter {
   private port: number;

@@ -180,6 +180,7 @@ enginesRouter.get('/', (_req: Request, res: Response) => {
 });
 
 // ✅ 已测通（2026-08-04 验收）：引擎安装 API（安装向导 UI 调用 /source 获取源信息、/install 发起安装）
+// ✅ 已确认（2026-08-05 PM+用户验收）：不可误改
 // ⚠️ 注意：以下路由曾在 41cecf7 重写 engines.ts 时被误删，导致安装功能 404 转圈，本次已恢复（回归测试通过）
 
 // GET /api/engines/sources - 获取所有引擎源信息

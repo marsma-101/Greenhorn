@@ -2,6 +2,7 @@
  * 统一模型网关（OpenAI 兼容）
  * 将各供应商的模型请求统一转换为 OpenAI 兼容格式，转发到对应上游
  */
+// ✅ 已确认（2026-08-05 PM+用户验收）：不可误改
 import { Request, Response } from 'express';
 import { MODEL_PROVIDERS } from '../routes/model-providers';
 import { getKey } from './keyvault';
