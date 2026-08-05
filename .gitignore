@@ -62,6 +62,9 @@ scripts/node/
 # 引擎安装目录（运行时生成，不进仓库）
 ai-agent/
 
+# OpenCode 本地数据（XDG 重定向，运行时生成，不进仓库）
+.opencode/
+
 # 密钥库（Key Vault，含 API Key，绝不进仓库）
 .data/
 

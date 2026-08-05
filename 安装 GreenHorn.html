@@ -257,6 +257,17 @@
       font-size: 13px;
       color: var(--text-muted);
     }
+    .mirror-tip {
+      text-align: center;
+      margin: 20px 0 14px;
+      padding: 10px 16px;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--accent-bright);
+      background: var(--accent-dim);
+      border: 1px solid var(--border-accent);
+      border-radius: var(--radius-sm);
+    }
 
     /* Steps */
     .steps {
@@ -366,20 +377,20 @@
       align-items: center;
       justify-content: center;
       gap: 8px;
-      padding: 14px 20px;
+      padding: 18px 24px;
       background: var(--bg-card);
       color: var(--text-secondary);
-      border: 1px solid var(--border);
+      border: 1px solid var(--border-accent);
       border-radius: var(--radius-md);
       font-size: 14px;
-      font-weight: 500;
+      font-weight: 600;
       cursor: pointer;
       transition: all 0.3s ease;
       text-decoration: none;
     }
     .mirror-btn:hover {
       background: var(--bg-elevated);
-      border-color: var(--border-accent);
+      border-color: var(--accent);
       color: var(--accent);
       transform: translateY(-1px);
     }
@@ -479,6 +490,19 @@
         <span class="icon">⬇</span>
         下载 GreenHorn 绿色版
       </a>
+      <p class="mirror-tip">中国大陆用户请优先使用镜像下载</p>
+      <div class="mirror-grid">
+        <a href="https://ghproxy.com/https://github.com/marsma-101/Greenhorn/releases/latest/download/greenhorn-green.zip"
+           class="mirror-btn">
+          <span>镜像 1</span>
+          <span class="badge">gh-proxy</span>
+        </a>
+        <a href="https://ghfast.top/https://github.com/marsma-101/Greenhorn/releases/latest/download/greenhorn-green.zip"
+           class="mirror-btn">
+          <span>镜像 2</span>
+          <span class="badge">ghfast</span>
+        </a>
+      </div>
       <p class="download-hint">绿色版已内置 Node.js 和所有依赖，解压即运行，无需联网</p>
     </div>
 
@@ -509,24 +533,6 @@
           <strong>双击 start.bat</strong>
           <span class="sub">绿色版首次启动无需下载，直接运行</span>
         </div>
-      </div>
-    </div>
-
-    <div class="mirror-section animate-in delay-5">
-      <div class="mirror-header">
-        <span class="mirror-title">GitHub Release 直连太慢？试试镜像加速</span>
-      </div>
-      <div class="mirror-grid">
-        <a href="https://ghproxy.com/https://github.com/marsma-101/Greenhorn/releases/latest/download/greenhorn-green.zip"
-           class="mirror-btn">
-          <span>镜像 1</span>
-          <span class="badge">gh-proxy</span>
-        </a>
-        <a href="https://ghfast.top/https://github.com/marsma-101/Greenhorn/releases/latest/download/greenhorn-green.zip"
-           class="mirror-btn">
-          <span>镜像 2</span>
-          <span class="badge">ghfast</span>
-        </a>
       </div>
     </div>
 

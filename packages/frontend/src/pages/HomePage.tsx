@@ -6,6 +6,7 @@ import { useApp } from '../context/AppContext';
 import { IconLeaf, IconSparkles, IconPlus, IconExternalLink } from '../components/icons';
 import EngineInstallModal from '../components/EngineInstallModal';
 import EngineConfigGuide from '../components/EngineConfigGuide';
+import KeyVaultModal from '../components/KeyVaultModal';
 
 interface EngineStatus {
   engineId: string;
@@ -39,6 +40,7 @@ export default function HomePage() {
   const [installingEngine, setInstallingEngine] = useState<EngineDefinition | null>(null);
   const [confirmEngine, setConfirmEngine] = useState<EngineDefinition | null>(null);
   const [configEngine, setConfigEngine] = useState<EngineDefinition | null>(null);
+  const [showKeyVault, setShowKeyVault] = useState(false);
 
   useEffect(() => {
     fetch('/api/engines/status')
@@ -229,6 +231,16 @@ export default function HomePage() {
         <div style={{ fontSize: '0.8125rem', color: 'var(--c-text-muted)' }}>
           本地已安装：<span style={{ color: 'var(--c-text)', fontWeight: 600 }}>{installedCount}</span> / {ENGINES.length} 个智能体
         </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '0.75rem' }}>
+          <button
+            onClick={() => setShowKeyVault(true)}
+            className="btn-primary"
+            style={{ padding: '6px 14px', fontSize: '0.8125rem' }}
+          >
+            🔑 密钥管理
+          </button>
+          <span style={{ fontSize: '0.75rem', color: 'var(--c-text-muted)' }}>配置一次全通用</span>
+        </div>
       </div>
 
       {/* 引擎卡片网格 */}
@@ -264,6 +276,19 @@ export default function HomePage() {
                   <h3 style={{ fontSize: '0.9375rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px' }}>
                     <span style={{ fontSize: '1.125rem' }}>{engine.emoji}</span>
                     {engine.name}
+                    {engine.id === 'opencode' && (
+                      <span style={{
+                        fontSize: '0.625rem',
+                        fontWeight: 600,
+                        padding: '1px 6px',
+                        borderRadius: '6px',
+                        background: 'var(--c-success-bg, #d1fae5)',
+                        color: 'var(--c-success-text, #059669)',
+                        flexShrink: 0,
+                      }}>
+                        🆓 免费
+                      </span>
+                    )}
                     {engine.homepageUrl && (
                       <a
                         href={engine.homepageUrl}
@@ -289,6 +314,11 @@ export default function HomePage() {
                   <p style={{ color: 'var(--c-text-muted)', fontSize: '0.75rem', marginTop: '0.25rem', lineHeight: 1.5 }}>
                     {engine.description}
                   </p>
+                  {engine.id === 'opencode' && (
+                    <p style={{ fontSize: '0.6875rem', color: 'var(--c-success-text, #059669)', marginTop: '0.25rem', lineHeight: 1.5 }}>
+                      零 API Key，开箱即用
+                    </p>
+                  )}
                   {/* Capability tags */}
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: '3px', marginTop: '6px' }}>
                     {caps.slice(0, 4).map(cap => {
@@ -512,6 +542,8 @@ export default function HomePage() {
           variant="modal"
         />
       )}
+
+      {showKeyVault && <KeyVaultModal onClose={() => setShowKeyVault(false)} />}
     </div>
   );
 }

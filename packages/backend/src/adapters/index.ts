@@ -5,3 +5,4 @@ export { ClaudeCodeAdapter } from './claude-code-adapter';
 export { OpenCodeAdapter } from './opencode-adapter';
 export { ReasonixAdapter } from './reasonix-adapter';
 export { CodexAdapter } from './codex-adapter';
+export { OpenClawAdapter } from './openclaw-adapter';

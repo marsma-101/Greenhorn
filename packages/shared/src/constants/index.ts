@@ -1,7 +1,7 @@
 import type { PromptInjectionMode } from './engines';
 
 export const APP_NAME = 'GreenHorn';
-export const APP_VERSION = '0.1.1';
+export const APP_VERSION = '0.1.2';
 export const DEFAULT_PORT = 1001;
 export const DEFAULT_TEMPERATURE = 0.7;
 export const DEFAULT_MAX_TOKENS = 4096;
@@ -111,7 +111,7 @@ export const ENGINES: EngineDefinition[] = [
   {
     id: 'opencode',
     name: 'OpenCode',
-    description: '开源编程助手，功能全面',
+    description: '开源编程助手，内置 Zen 免费模型',
     emoji: '📝',
     status: 'missing',
     detectCmd: 'opencode',
@@ -119,13 +119,10 @@ export const ENGINES: EngineDefinition[] = [
     promptInjectionMode: 'http-sse',
     homepageUrl: 'https://opencode.ai',
     capabilities: ['chat', 'streaming', 'thinking', 'tools', 'code', 'filesystem'],
-    requiresApiKey: true,
-    apiKeyLabel: 'API Key',
-    apiKeyHint: '在 OpenCode 平台创建 API Key 后粘贴',
-    apiKeyRegisterUrl: 'https://opencode.ai/keys',
+    requiresApiKey: false,
     defaultProvider: 'opencode',
-    defaultModel: 'opus',
-    configGuideNote: 'OpenCode 需要 API Key 才能运行，必须配置后才能开始对话',
+    defaultModel: 'deepseek-v4-flash-free',
+    configGuideNote: 'OpenCode 内置 Zen 免费模型（如 deepseek-v4-flash-free），无需 API Key 即可对话，零成本开箱即用',
   },
   {
     id: 'reasonix',
@@ -145,6 +142,20 @@ export const ENGINES: EngineDefinition[] = [
     defaultProvider: 'deepseek',
     defaultModel: 'deepseek-reasoner',
     configGuideNote: 'Reasonix 需要 DEEPSEEK_API_KEY 才能运行，必须配置后才能开始对话',
+  },
+  {
+    id: 'openclaw',
+    name: 'OpenClaw',
+    description: '本地 AI 智能体，可自主执行任务',
+    emoji: '🦞',
+    status: 'missing',
+    detectCmd: 'openclaw',
+    launchCmd: 'openclaw',
+    promptInjectionMode: 'cli-oneshot',
+    homepageUrl: 'https://github.com/openclaw/openclaw',
+    capabilities: ['chat', 'streaming', 'thinking', 'tools', 'code', 'filesystem', 'browser'],
+    requiresApiKey: false,
+    configGuideNote: 'OpenClaw 为本地智能体，通过 openclaw run 单次执行对话，无需 API Key',
   },
 ];
 

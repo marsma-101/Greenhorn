@@ -77,6 +77,16 @@ export const ENGINE_SOURCES: Record<string, EngineSource> = {
     dependencies: 'go/npm',
     description: 'DeepSeek 专用推理引擎',
   },
+  openclaw: {
+    id: 'openclaw',
+    name: 'OpenClaw',
+    githubUrls: [
+      'https://github.com/openclaw/openclaw.git',
+    ],
+    localSource: 'D:\\program\\openclaw',
+    dependencies: 'npm',
+    description: '本地 AI 智能体',
+  },
 };
 
 export interface InstallProgress {

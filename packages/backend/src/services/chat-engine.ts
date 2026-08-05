@@ -26,6 +26,7 @@ export async function* streamChat(
   prompt: string,
   history: Array<{ role: string; content: string }>,
   options: ChatOptions,
+  signal?: AbortSignal,
 ): AsyncIterable<ChatEvent> {
   const { model, apiKey, baseUrl, temperature = 0.7, maxTokens = 4096, systemMessage } = options;
   
@@ -59,6 +60,7 @@ export async function* streamChat(
         max_tokens: maxTokens,
         stream: true,
       }),
+      signal,
     });
     
     if (!response.ok) {
@@ -107,6 +109,7 @@ export async function* streamChat(
     const decoder = new TextDecoder();
     let buffer = '';
     let content = '';
+    let thinking = '';
     
     while (true) {
       const { done, value } = await reader.read();
@@ -129,6 +132,12 @@ export async function* streamChat(
         try {
           const parsed = JSON.parse(data);
           const delta = parsed.choices?.[0]?.delta;
+          
+          // 推理模型的思维链内容在 delta.reasoning，实时转发为 thinking 事件
+          if (delta?.reasoning) {
+            thinking += delta.reasoning;
+            yield { type: 'thinking', content: thinking };
+          }
           
           if (delta?.content) {
             // 模拟思考过程（前 20 个字符标记为 thinking）

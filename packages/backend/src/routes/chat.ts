@@ -80,6 +80,8 @@ chatRouter.post('/', async (req: Request, res: Response) => {
   res.setHeader('Cache-Control', 'no-cache');
   res.setHeader('Connection', 'keep-alive');
   res.setHeader('X-Accel-Buffering', 'no');
+  // 立即发送响应头，避免客户端长时间等待首个事件（推理模型思维链可能较长）
+  res.flushHeaders();
   
   try {
     if (!isOllama && !apiKey) {
@@ -108,7 +110,14 @@ chatRouter.post('/', async (req: Request, res: Response) => {
       systemMessage += skillInject;
     }
     
-    for await (const event of streamChat(prompt, history || [], { model, apiKey, baseUrl, persona, systemMessage })) {
+    // 客户端断开（连接提前关闭）时中止上游请求，避免 ollama 等串行服务被挂起请求占用。
+    // 注意：不能监听 req.on('close')——POST body 读完即触发，会导致请求被提前中止
+    const controller = new AbortController();
+    res.on('close', () => {
+      controller.abort();
+    });
+    
+    for await (const event of streamChat(prompt, history || [], { model, apiKey, baseUrl, persona, systemMessage }, controller.signal)) {
       if (res.destroyed) break;
       res.write(`data: ${JSON.stringify(event)}\n\n`);
     }
@@ -124,10 +133,4 @@ chatRouter.post('/', async (req: Request, res: Response) => {
       res.end();
     }
   }
-  
-  req.on('close', () => {
-    if (!res.destroyed) {
-      res.end();
-    }
-  });
 });

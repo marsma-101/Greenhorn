@@ -65,7 +65,8 @@ export type PromptInjectionMode =
   | 'hermes-query'
   | 'stdin-after-start'
   | 'http-api'
-  | 'http-sse';
+  | 'http-sse'
+  | 'cli-oneshot';
 
 export const ENGINE_CAPABILITIES: EngineCapability[] = [
   { id: 'chat', name: '对话', description: '基础对话能力', level: 'basic', supported: true },

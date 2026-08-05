@@ -1,5 +1,13 @@
 ﻿$ErrorActionPreference = "Stop"
-$ProjectRoot = Resolve-Path "$PSScriptRoot\.."
+
+# 解析项目根目录：优先 $PSCommandPath（最可靠），fallback 到 $PSScriptRoot / MyInvocation
+# （部分包装调用下 $PSScriptRoot 可能为空，导致 Resolve-Path 失败）
+$scriptDir = $null
+if ($PSCommandPath) { $scriptDir = Split-Path -Parent $PSCommandPath }
+if (-not $scriptDir -and $PSScriptRoot) { $scriptDir = $PSScriptRoot }
+if (-not $scriptDir -and $MyInvocation.MyCommand.Definition) { $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Definition }
+if (-not $scriptDir) { $scriptDir = (Get-Location).Path }
+$ProjectRoot = Resolve-Path "$scriptDir\.."
 $ReleaseDir = Join-Path $ProjectRoot "dist\release-temp"
 $OutputZip = Join-Path $ProjectRoot "dist\greenhorn-green.zip"
 
@@ -55,8 +63,10 @@ New-Item -ItemType Directory -Force -Path $minPkgDir | Out-Null
 Set-Content -Path (Join-Path $minPkgDir "package.json") -Value $minPkgJson -Encoding UTF8
 
 # Run npm install to get clean flat node_modules
+# 注意：临时目录在 $env:TEMP 下，不继承项目 .npmrc 的镜像配置，
+# 必须显式指定 --registry=npmmirror，否则走官方源在国内极慢（~19s/包 vs ~1s/包）
 Push-Location $minPkgDir
-$proc = Start-Process -FilePath "npm.cmd" -ArgumentList "install","--omit=dev" -NoNewWindow -Wait -PassThru -RedirectStandardOutput (Join-Path $env:TEMP "npm-install-out.txt") -RedirectStandardError (Join-Path $env:TEMP "npm-install-err.txt")
+$proc = Start-Process -FilePath "npm.cmd" -ArgumentList "install","--omit=dev","--registry=https://registry.npmmirror.com","--fetch-timeout=120000","--fetch-retries=3" -NoNewWindow -Wait -PassThru -RedirectStandardOutput (Join-Path $env:TEMP "npm-install-out.txt") -RedirectStandardError (Join-Path $env:TEMP "npm-install-err.txt")
 $npmExit = $proc.ExitCode
 Pop-Location
 Write-Host "    npm exit code: $npmExit"

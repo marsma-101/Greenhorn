@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express';
 import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'fs';
 import path from 'path';
 import os from 'os';
+import { getKey } from '../services/keyvault';
 
 export const configRouter: Router = Router();
 
@@ -86,12 +87,16 @@ configRouter.get('/', async (req: Request, res: Response) => {
     // Strip provider prefix (PI format: "ollama/qwen3.5:9b" → "qwen3.5:9b")
     const currentModel = rawModel.includes('/') ? rawModel.split('/').pop()! : rawModel;
     const currentAuth = auth[currentProvider] || {};
-    
+
+    // ✅ 已测通（2026-08-05 阶段2 验收）：apiKey 回退到 Key Vault（引擎联动：keyvault 配一次，引擎自动可用）
+    const apiKey = currentAuth.apiKey || getKey(currentProvider) || '';
+    const baseUrl = currentAuth.baseUrl || PROVIDER_URLS[currentProvider] || 'https://api.deepseek.com';
+
     res.json({
       provider: currentProvider,
       model: currentModel,
-      apiKey: currentAuth.apiKey || '',
-      baseUrl: currentAuth.baseUrl || 'https://api.deepseek.com',
+      apiKey,
+      baseUrl,
       theme: 'light',
       showHelp: true,
     });
